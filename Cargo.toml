@@ -1,0 +1,17 @@
+[package]
+name = "mod_menu"
+version = "0.5.3"
+edition = "2021"
+authors = ["MadManPetr1"]
+description = "Focused usability improvements for the Teamfight Manager 2 mod manager"
+license = "GPL-3.0-or-later"
+readme = "README.md"
+repository = "https://github.com/MadManPetr1/tfm2-better-mod-menu"
+keywords = ["teamfight-manager-2", "mod", "ui", "mod-manager"]
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

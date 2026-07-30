@@ -1,0 +1,91 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# See LICENSE-EXCEPTION.md for the TFM2 linking exception and attribution terms.
+
+param(
+    [string]$SdkDir = $env:TFM2_MOD_SDK
+)
+
+$ErrorActionPreference = "Stop"
+
+if ([string]::IsNullOrWhiteSpace($SdkDir)) {
+    throw "Pass -SdkDir <path-to-v0.5.3-mod-sdk> or set TFM2_MOD_SDK."
+}
+
+$sdk = (Resolve-Path -LiteralPath $SdkDir).Path
+$depsDir = Join-Path $sdk "deps"
+$nativeDir = Join-Path $sdk "native"
+$manifest = Join-Path $PSScriptRoot "Cargo.toml"
+$targetDir = Join-Path $PSScriptRoot "target"
+$baseVersion = (Get-Content -LiteralPath (Join-Path $sdk "base_version.txt") -Raw).Trim()
+if ($baseVersion -ne "0.5.3") {
+    throw "Better Mod Menu 0.5.3 must be built with the 0.5.3 Mod SDK; found $baseVersion."
+}
+
+$pinned = Select-String -LiteralPath (Join-Path $sdk "rust-toolchain.toml") `
+    -Pattern '^\s*channel\s*=\s*"([^"]+)"' |
+    ForEach-Object { $_.Matches[0].Groups[1].Value } |
+    Select-Object -First 1
+if (-not $pinned) {
+    throw "Could not read the SDK's pinned Rust toolchain."
+}
+$env:RUSTUP_TOOLCHAIN = $pinned
+
+# The SDK contains LLVM-bitcode archive members, so use rust-lld's COFF driver.
+$sysroot = (& rustup run $pinned rustc --print sysroot | Select-Object -First 1).Trim()
+if ([string]::IsNullOrWhiteSpace($sysroot) -or -not (Test-Path -LiteralPath $sysroot)) {
+    throw "Could not locate the SDK's pinned Rust sysroot."
+}
+$rustLld = Join-Path $sysroot "lib\rustlib\x86_64-pc-windows-msvc\bin\rust-lld.exe"
+if (-not (Test-Path -LiteralPath $rustLld -PathType Leaf)) {
+    throw "rust-lld.exe is missing from the SDK's pinned Rust toolchain."
+}
+$linkerDir = Join-Path ([System.IO.Path]::GetTempPath()) "tfm2-mod-sdk-linker\$pinned"
+$lldLink = Join-Path $linkerDir "lld-link.exe"
+New-Item -ItemType Directory -Path $linkerDir -Force | Out-Null
+if (-not (Test-Path -LiteralPath $lldLink -PathType Leaf)) {
+    try {
+        New-Item -ItemType HardLink -Path $lldLink -Target $rustLld -ErrorAction Stop | Out-Null
+    }
+    catch {
+        Copy-Item -LiteralPath $rustLld -Destination $lldLink
+    }
+}
+$env:CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER = $lldLink
+
+function Find-SdkRlib([string]$pattern) {
+    $matches = @(Get-ChildItem -LiteralPath $depsDir -Filter $pattern)
+    if ($matches.Count -ne 1) {
+        throw "Expected exactly one SDK dependency matching $pattern; found $($matches.Count)."
+    }
+    return $matches[0].FullName
+}
+
+$modApi = Find-SdkRlib "libmod_api-*.rlib"
+$engineUi = Find-SdkRlib "libengine_ui-*.rlib"
+$engineCore = Find-SdkRlib "libengine_core-*.rlib"
+$gameCore = Find-SdkRlib "libgame_core-*.rlib"
+$arrayvec = Find-SdkRlib "libarrayvec-*.rlib"
+
+$flags = @(
+    "-L", "dependency=$depsDir",
+    "--extern", "mod_api=$modApi",
+    "--extern", "engine_ui=$engineUi",
+    "--extern", "engine_core=$engineCore",
+    "--extern", "game_core=$gameCore",
+    "--extern", "arrayvec=$arrayvec",
+    "-L", "native=$nativeDir"
+)
+$env:CARGO_ENCODED_RUSTFLAGS = $flags -join [char]31
+
+cargo rustc --release --manifest-path $manifest --target-dir $targetDir --lib -- --crate-type cdylib
+if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
+}
+
+$generatedDll = Join-Path $targetDir "release\mod_menu.dll"
+$outputDll = Join-Path $PSScriptRoot "mod_menu.dll"
+if (-not (Test-Path -LiteralPath $generatedDll -PathType Leaf)) {
+    throw "Cargo build succeeded, but the generated DLL is missing: $generatedDll"
+}
+Copy-Item -LiteralPath $generatedDll -Destination $outputDll -Force
+Write-Host "Local DLL ready: $outputDll"

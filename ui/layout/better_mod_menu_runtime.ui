@@ -1,0 +1,840 @@
+better_mod_menu_surface:color {
+  width: 1532px;
+  height: 886px;
+  z: 100;
+  ignore_event: true;
+
+  color: #161721ff;
+  rounding: Uniform {
+    rounding: 12;
+  }
+
+  #owned_title:label {
+    @"asset/base/style/main#bold_label";
+    x: 24px;
+    y: 12px;
+    width: 480px;
+    height: 28px;
+    size: 20;
+    align_x: Left;
+    align_y: Center;
+    text: "Better Mod Menu";
+  }
+
+  #owned_summary:label {
+    @"asset/base/style/main#label";
+    x: 24px;
+    y: 38px;
+    width: 760px;
+    height: 20px;
+    size: 13;
+    font: "asset/base/font/set/regular";
+    align_x: Left;
+    align_y: Center;
+    text: "Installed mod overview";
+  }
+
+  #owned_cancel:button {
+    x: 1492px;
+    y: 20px;
+    width: 16px;
+    height: 16px;
+    ignore_event: true;
+    source: "asset/base/ui/icons/cross";
+    color: #c2c6ceff;
+  }
+
+  #mod_menu_search:text_edit {
+    x: 24px;
+    y: 68px;
+    width: 440px;
+    height: 40px;
+    ignore_event: false;
+    stroke: 1;
+    font: "asset/base/font/set/regular";
+    size: 14;
+    placeholder: "Search by mod or author";
+    align_y: Center;
+    max_length: 64;
+    rounding: Uniform {
+      rounding: 8;
+    }
+    padding: {
+      left: 42px;
+      right: 42px;
+      top: 4px;
+      bottom: 4px;
+    }
+  }
+
+  #owned_search_icon:image {
+    x: 38px;
+    y: 80px;
+    width: 16px;
+    height: 16px;
+    ignore_event: true;
+    source: "asset/base/ui/banpick/fi-rr-search";
+  }
+
+  #mod_menu_search_clear:button {
+    x: 434px;
+    y: 81px;
+    width: 14px;
+    height: 14px;
+    visible: false;
+    ignore_event: false;
+    source: "asset/base/ui/icons/cross";
+  }
+
+  #mod_menu_filter_all:color {
+    x: 476px;
+    y: 68px;
+    width: 92px;
+    height: 40px;
+    ignore_event: true;
+    #label:label {
+      @"asset/base/style/main#bold_label";
+      width: 100%;
+      height: 100%;
+      size: 14;
+      align_x: Center;
+      align_y: Center;
+      text: "All";
+    }
+    #native_filter_hitbox:button {
+      width: 100%;
+      height: 100%;
+      ignore_event: false;
+      source: "";
+      color: #00000000;
+      hover: { color: #00000000; }
+      active: { color: #00000000; }
+    }
+  }
+
+  #mod_menu_filter_all_active:color {
+    x: 476px;
+    y: 68px;
+    width: 92px;
+    height: 40px;
+    visible: false;
+    ignore_event: true;
+    #label:label {
+      @"asset/base/style/main#bold_label";
+      width: 100%;
+      height: 100%;
+      size: 14;
+      align_x: Center;
+      align_y: Center;
+      text: "All";
+    }
+    #native_filter_hitbox:button {
+      width: 100%;
+      height: 100%;
+      ignore_event: false;
+      source: "";
+      color: #00000000;
+      hover: { color: #00000000; }
+      active: { color: #00000000; }
+    }
+  }
+
+  #mod_menu_filter_code:color {
+    x: 576px;
+    y: 68px;
+    width: 102px;
+    height: 40px;
+    ignore_event: true;
+    #label:label {
+      @"asset/base/style/main#bold_label";
+      width: 100%;
+      height: 100%;
+      size: 14;
+      align_x: Center;
+      align_y: Center;
+      text: "Code";
+    }
+    #native_filter_hitbox:button {
+      width: 100%;
+      height: 100%;
+      ignore_event: false;
+      source: "";
+      color: #00000000;
+      hover: { color: #00000000; }
+      active: { color: #00000000; }
+    }
+  }
+
+  #mod_menu_filter_code_active:color {
+    x: 576px;
+    y: 68px;
+    width: 102px;
+    height: 40px;
+    visible: false;
+    ignore_event: true;
+    #label:label {
+      @"asset/base/style/main#bold_label";
+      width: 100%;
+      height: 100%;
+      size: 14;
+      align_x: Center;
+      align_y: Center;
+      text: "Code";
+    }
+    #native_filter_hitbox:button {
+      width: 100%;
+      height: 100%;
+      ignore_event: false;
+      source: "";
+      color: #00000000;
+      hover: { color: #00000000; }
+      active: { color: #00000000; }
+    }
+  }
+
+  #mod_menu_filter_workshop:color {
+    x: 686px;
+    y: 68px;
+    width: 108px;
+    height: 40px;
+    ignore_event: true;
+    #label:label {
+      @"asset/base/style/main#bold_label";
+      width: 100%;
+      height: 100%;
+      size: 14;
+      align_x: Center;
+      align_y: Center;
+      text: "Workshop";
+    }
+    #native_filter_hitbox:button {
+      width: 100%;
+      height: 100%;
+      ignore_event: false;
+      source: "";
+      color: #00000000;
+      hover: { color: #00000000; }
+      active: { color: #00000000; }
+    }
+  }
+
+  #mod_menu_filter_workshop_active:color {
+    x: 686px;
+    y: 68px;
+    width: 108px;
+    height: 40px;
+    visible: false;
+    ignore_event: true;
+    #label:label {
+      @"asset/base/style/main#bold_label";
+      width: 100%;
+      height: 100%;
+      size: 14;
+      align_x: Center;
+      align_y: Center;
+      text: "Workshop";
+    }
+    #native_filter_hitbox:button {
+      width: 100%;
+      height: 100%;
+      ignore_event: false;
+      source: "";
+      color: #00000000;
+      hover: { color: #00000000; }
+      active: { color: #00000000; }
+    }
+  }
+
+  #owned_table_header:color {
+    x: 24px;
+    y: 120px;
+    width: 770px;
+    height: 44px;
+    ignore_event: true;
+
+    #name:label {
+      @"asset/base/style/main#label";
+      x: 12px;
+      width: 280px;
+      height: 44px;
+      size: 15;
+      align_x: Left;
+      align_y: Center;
+      text: "Name";
+    }
+    #author:label {
+      @"asset/base/style/main#label";
+      x: 292px;
+      width: 154px;
+      height: 44px;
+      size: 15;
+      align_x: Left;
+      align_y: Center;
+      text: "Author";
+    }
+    #source:label {
+      @"asset/base/style/main#label";
+      x: 446px;
+      width: 80px;
+      height: 44px;
+      size: 15;
+      align_x: Center;
+      align_y: Center;
+      text: "Source";
+    }
+    #status:label {
+      @"asset/base/style/main#label";
+      x: 532px;
+      width: 214px;
+      height: 44px;
+      size: 15;
+      align_x: Left;
+      align_y: Center;
+      text: "Status";
+    }
+  }
+
+  #owned_rows:empty {
+    x: 26px;
+    y: 168px;
+    width: 758px;
+    height: auto;
+    ignore_event: true;
+    child_type: TopToBottom {
+      spacing: 8px;
+    }
+  }
+
+  #owned_empty_state:label {
+    @"asset/base/style/main#label";
+    x: 24px;
+    y: 168px;
+    width: 770px;
+    height: 520px;
+    visible: false;
+    size: 16;
+    align_x: Center;
+    align_y: Center;
+    text: "No mods match the current search and filter.";
+  }
+
+  #owned_thumbnail_card:color {
+    x: 808px;
+    y: 68px;
+    width: 120px;
+    height: 120px;
+    ignore_event: true;
+    stroke: 1;
+    back_color: #202230ff;
+    #owned_thumbnail:image {
+      x: 8px;
+      y: 8px;
+      width: 104px;
+      height: 104px;
+      visible: false;
+      source: "";
+    }
+    #owned_thumbnail_fallback:image {
+      x: 36px;
+      y: 36px;
+      width: 48px;
+      height: 48px;
+      source: "asset/base/ui/icons/setting";
+    }
+  }
+
+  #owned_info_card:color {
+    x: 942px;
+    y: 68px;
+    width: 566px;
+    height: 120px;
+    ignore_event: true;
+    stroke: 1;
+    back_color: #202230ff;
+
+    #owned_mod_name:label {
+      @"asset/base/style/main#bold_label";
+      x: 18px;
+      y: 10px;
+      width: 330px;
+      height: 32px;
+      size: 24;
+      align_x: Left;
+      align_y: Center;
+      text: "Select a mod";
+    }
+    #owned_version:label {
+      @"asset/base/style/main#bold_label";
+      x: 350px;
+      y: 14px;
+      width: 198px;
+      height: 24px;
+      size: 15;
+      align_x: Right;
+      align_y: Center;
+      text: "Version -";
+    }
+    #owned_author_icon:image {
+      x: 18px;
+      y: 54px;
+      width: 14px;
+      height: 14px;
+      source: "asset/base/ui/icons/staff";
+    }
+    #owned_author:label {
+      @"asset/base/style/main#label";
+      x: 40px;
+      y: 48px;
+      width: 250px;
+      height: 24px;
+      size: 16;
+      align_x: Left;
+      align_y: Center;
+      text: "-";
+    }
+    #owned_source_icon:image {
+      x: 350px;
+      y: 54px;
+      width: 14px;
+      height: 14px;
+      source: "asset/base/ui/icons/game";
+    }
+    #owned_source:label {
+      @"asset/base/style/main#label";
+      x: 372px;
+      y: 48px;
+      width: 176px;
+      height: 24px;
+      size: 14;
+      align_x: Right;
+      align_y: Center;
+      text: "Code";
+    }
+    #owned_dependency_icon:image {
+      x: 18px;
+      y: 86px;
+      width: 14px;
+      height: 14px;
+      source: "asset/base/ui/icons/dependency";
+    }
+    #owned_dependencies:label {
+      @"asset/base/style/main#label";
+      x: 40px;
+      y: 80px;
+      width: 478px;
+      height: 24px;
+      size: 14;
+      align_x: Left;
+      align_y: Center;
+      text: "No dependencies";
+    }
+    #owned_dependency_warning:image {
+      x: 526px;
+      y: 83px;
+      width: 18px;
+      height: 18px;
+      visible: false;
+      ignore_event: true;
+      source: "asset/mod_menu/ui/icons/status-warning";
+      #native_dependency_warning_hitbox:button {
+        x: -3px;
+        y: -3px;
+        width: 24px;
+        height: 24px;
+        ignore_event: false;
+        source: "";
+        color: #00000000;
+        hover: { color: #00000000; }
+        active: { color: #00000000; }
+      }
+    }
+  }
+
+  #owned_preview_card:color {
+    x: 808px;
+    y: 202px;
+    width: 700px;
+    height: 568px;
+    ignore_event: true;
+    stroke: 1;
+    back_color: #202230ff;
+
+    #owned_overview_icon:image {
+      x: 20px;
+      y: 20px;
+      width: 16px;
+      height: 16px;
+      source: "asset/base/ui/icons/info";
+    }
+    #owned_overview_title:label {
+      @"asset/base/style/main#bold_label";
+      x: 46px;
+      y: 14px;
+      width: 300px;
+      height: 28px;
+      size: 17;
+      align_x: Left;
+      align_y: Center;
+      text: "Overview";
+    }
+    #owned_preview_tab_overview:color {
+      x: 480px;
+      y: 12px;
+      width: 92px;
+      height: 32px;
+      visible: false;
+      ignore_event: true;
+      stroke: 1;
+      back_color: #145648ff;
+      #label:label {
+        @"asset/base/style/main#bold_label";
+        width: 92px;
+        height: 32px;
+        size: 12;
+        align_x: Center;
+        align_y: Center;
+        text: "Overview";
+      }
+      #native_overview_tab_hitbox:button {
+        width: 100%;
+        height: 100%;
+        ignore_event: false;
+        source: "";
+        color: #00000000;
+        hover: { color: #00000000; }
+        active: { color: #00000000; }
+      }
+    }
+    #owned_preview_tab_settings:color {
+      x: 578px;
+      y: 12px;
+      width: 102px;
+      height: 32px;
+      visible: false;
+      ignore_event: true;
+      stroke: 1;
+      back_color: #252735ff;
+      #label:label {
+        @"asset/base/style/main#bold_label";
+        width: 102px;
+        height: 32px;
+        size: 12;
+        align_x: Center;
+        align_y: Center;
+        text: "Settings";
+      }
+      #native_settings_tab_hitbox:button {
+        width: 100%;
+        height: 100%;
+        ignore_event: false;
+        source: "";
+        color: #00000000;
+        hover: { color: #00000000; }
+        active: { color: #00000000; }
+      }
+    }
+    #owned_description_scroll:scroll_view {
+      x: 20px;
+      y: 54px;
+      width: 660px;
+      height: 490px;
+      speed: 80;
+      bar_width: 4;
+      #contents:empty {
+        width: 642px;
+        height: auto;
+        child_type: TopToBottom {
+          spacing: 14px;
+        }
+        #owned_banner:image {
+          width: 642px;
+          height: 321px;
+          visible: false;
+          source: "";
+        }
+        #owned_description:label {
+          @"asset/base/style/main#label";
+          width: 642px;
+          height: 10000px;
+          size: 16;
+          line_height: 24;
+          fit_height: true;
+          align_x: Left;
+          align_y: Top;
+          text: "Choose a mod from the list to inspect its details.";
+        }
+      }
+    }
+
+    #owned_settings_panel:empty {
+      x: 20px;
+      y: 14px;
+      width: 660px;
+      height: 530px;
+      visible: false;
+      ignore_event: true;
+
+      #owned_settings_title:label {
+        @"asset/base/style/main#bold_label";
+        width: 360px;
+        height: 28px;
+        size: 17;
+        align_x: Left;
+        align_y: Center;
+        text: "Settings";
+      }
+
+      #owned_settings_status_badge:color {
+        x: 344px;
+        y: 2px;
+        width: 116px;
+        height: 24px;
+        visible: false;
+        ignore_event: true;
+        stroke: 1;
+        back_color: #145648ff;
+
+        #owned_settings_status:label {
+          @"asset/base/style/main#bold_label";
+          width: 116px;
+          height: 24px;
+          size: 11;
+          align_x: Center;
+          align_y: Center;
+          text: "";
+        }
+      }
+
+      #owned_settings_rows:empty {
+        y: 40px;
+        width: 660px;
+        height: auto;
+        ignore_event: true;
+        child_type: TopToBottom {
+          spacing: 8px;
+        }
+      }
+    }
+  }
+
+  #owned_keyboard_hint:label {
+    @"asset/base/style/main#label";
+    x: 24px;
+    y: 824px;
+    width: 760px;
+    height: 38px;
+    size: 13;
+    font: "asset/base/font/set/regular";
+    align_x: Left;
+    align_y: Center;
+    text: "Ctrl+F Search   •   Up/Down Navigate   •   E Enable   •   D Disable";
+  }
+
+  #owned_tooltip:color {
+    x: 808px;
+    y: 778px;
+    width: 700px;
+    height: 34px;
+    z: 200;
+    visible: false;
+    ignore_event: true;
+    stroke: 1;
+    color: #4a4c56ff;
+    back_color: #171822ff;
+
+  }
+  #owned_tooltip_text_overlay:label {
+    @"asset/base/style/main#label";
+    x: 820px;
+    y: 778px;
+    width: 676px;
+    height: 34px;
+    z: 201;
+    visible: false;
+    size: 13;
+    font: "asset/base/font/set/regular";
+    color: #e8e8e8ff;
+    align_x: Left;
+    align_y: Center;
+    text: "";
+  }
+
+  #owned_restart_button:color {
+    x: 808px;
+    y: 821px;
+    width: 270px;
+    height: 41px;
+    visible: false;
+    ignore_event: true;
+    stroke: 1;
+    back_color: #372b14ff;
+
+    #icon:image {
+      x: 14px;
+      y: 10px;
+      width: 20px;
+      height: 20px;
+      source: "asset/mod_menu/ui/icons/status-restart";
+    }
+    #label:label {
+      @"asset/base/style/main#bold_label";
+      x: 44px;
+      width: 212px;
+      height: 41px;
+      size: 15;
+      align_x: Left;
+      align_y: Center;
+      text: "Restart & Apply";
+    }
+    #native_restart_hitbox:button {
+      width: 100%;
+      height: 100%;
+      ignore_event: false;
+      source: "";
+      color: #00000000;
+      hover: { color: #00000000; }
+      active: { color: #00000000; }
+    }
+  }
+
+  #owned_workshop_button:color {
+    x: 1092px;
+    y: 821px;
+    width: 202px;
+    height: 41px;
+    ignore_event: true;
+    stroke: 1;
+    back_color: #1d1f2cff;
+    #icon:image {
+      x: 12px;
+      y: 10px;
+      width: 20px;
+      height: 20px;
+      source: "asset/base/ui/icons/steam";
+    }
+    #label:label {
+      @"asset/base/style/main#bold_label";
+      x: 40px;
+      width: 150px;
+      height: 41px;
+      size: 16;
+      align_x: Left;
+      align_y: Center;
+      text: "Steam Workshop";
+    }
+  }
+
+  #owned_close_button:color {
+    x: 1308px;
+    y: 821px;
+    width: 200px;
+    height: 41px;
+    ignore_event: true;
+    stroke: 1;
+    back_color: #1d1f2cff;
+    #label:label {
+      @"asset/base/style/main#bold_label";
+      width: 200px;
+      height: 41px;
+      size: 16;
+      align_x: Center;
+      align_y: Center;
+      text: "Close";
+    }
+  }
+
+  #owned_base_layout_donors:empty {
+    visible: false;
+
+    #bmm_donor_header:empty {
+      width: 1532px;
+      height: 68px;
+    }
+    #bmm_donor_title:label {
+      x: 24px;
+      y: 8px;
+      width: 700px;
+      height: 34px;
+    }
+    #bmm_donor_table:empty {
+      y: 52px;
+      width: 770px;
+      height: 650px;
+    }
+    #bmm_donor_table_header:empty {
+      width: 770px;
+      height: 40px;
+    }
+    #bmm_donor_table_name:label {
+      x: 12px;
+      width: 280px;
+      height: 40px;
+    }
+    #bmm_donor_table_author:label {
+      x: 292px;
+      width: 154px;
+      height: 40px;
+    }
+    #bmm_donor_table_status:label {
+      x: 532px;
+      width: 214px;
+      height: 40px;
+    }
+    #bmm_donor_table_scroll:scroll_view {
+      y: 40px;
+      width: 770px;
+      height: 610px;
+    }
+    #bmm_donor_thumbnail_panel:color {
+      width: 120px;
+      height: 120px;
+    }
+    #bmm_donor_info_panel:color {
+      x: 134px;
+      width: 566px;
+      height: 120px;
+    }
+    #bmm_donor_mod_name:label {
+      x: 16px;
+      y: 12px;
+      width: 534px;
+      height: 32px;
+    }
+    #bmm_donor_mod_author:label {
+      x: 42px;
+      y: 48px;
+      width: 278px;
+      height: 24px;
+    }
+    #bmm_donor_mod_date:label {
+      x: 42px;
+      y: 76px;
+      width: 178px;
+      height: 24px;
+    }
+    #bmm_donor_description_panel:color {
+      y: 134px;
+      width: 700px;
+      height: 568px;
+    }
+    #bmm_donor_description_scroll:scroll_view {
+      x: 16px;
+      y: 48px;
+      width: 668px;
+      height: 504px;
+    }
+    #bmm_donor_bottom_buttons:empty {
+      anchor_x: 1;
+      pivot_x: 1;
+      anchor_y: 1;
+      pivot_y: 1;
+      x: -24px;
+      y: -24px;
+      width: 416px;
+      height: 40px;
+      child_type: LeftToRight {
+        spacing: 16px;
+      }
+    }
+  }
+}

@@ -1,0 +1,116 @@
+slot_runtime:color_icon_button {
+  @"asset/base/style/main#tertiary_button";
+  width: 758px;
+  height: 52px;
+  btn: {
+    color: #00000000;
+    stroke: 0;
+    back_color: #1d1f2cff;
+  }
+  hover: {
+    btn: {
+      color: #4a4c56ff;
+      stroke: 1;
+      back_color: #202231ff;
+    }
+  }
+  active: {
+    btn: {
+      color: #c2c6ceff;
+      stroke: 1;
+      back_color: #202231ff;
+    }
+  }
+  #name:label {
+    @"asset/base/style/main#label";
+    x: 12px;
+    width: 268px;
+    height: 52px;
+    size: 15;
+    align_x: Left;
+    align_y: Center;
+    text: "";
+  }
+  #author:label {
+    @"asset/base/style/main#label";
+    x: 292px;
+    width: 154px;
+    height: 52px;
+    size: 14;
+    align_x: Left;
+    align_y: Center;
+    text: "";
+  }
+  #workshop_badge:label {
+    @"asset/base/style/main#label";
+    x: 446px;
+    width: 80px;
+    height: 52px;
+    size: 12;
+    align_x: Center;
+    align_y: Center;
+    text: "#asset/base/text/ui?mods.workshop_badge";
+    visible: false;
+  }
+  #code_badge:label {
+    @"asset/base/style/main#label";
+    x: 446px;
+    width: 80px;
+    height: 52px;
+    size: 12;
+    align_x: Center;
+    align_y: Center;
+    text: "";
+    visible: false;
+  }
+  #toggle:empty {
+    x: 532px;
+    width: 214px;
+    height: 52px;
+    #bg:color {
+      width: 172px;
+      height: 37px;
+      anchor_y: 0.5;
+      pivot_y: 0.5;
+      padding: {
+        left: 4px;
+        right: 4px;
+        top: 4px;
+        bottom: 4px;
+      }
+      color: #4a4c56ff;
+      stroke: 1;
+      back_color: #00000000;
+      child_type: LeftToRight {
+        spacing: 0px;
+      }
+      rounding: Uniform {
+        rounding: 8;
+      }
+      #enabled:color_selectable {
+        @"asset/base/style/main#strategy_option";
+        width: 82px;
+        height: 29px;
+        label: {
+          size: 13;
+        }
+        selected_label: {
+          size: 13;
+        }
+        text: "#asset/base/text/ui?mods.enabled";
+      }
+      #disabled:color_selectable {
+        @"asset/base/style/main#strategy_option";
+        width: 82px;
+        height: 29px;
+        label: {
+          size: 13;
+        }
+        selected_label: {
+          size: 13;
+        }
+        text: "#asset/base/text/ui?mods.disabled";
+      }
+    }
+  }
+}

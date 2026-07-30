@@ -1,0 +1,6 @@
+/target/
+/builds/
+/mod_menu.dll
+/mod.workshop_id
+*.dll.lib
+*.pdb

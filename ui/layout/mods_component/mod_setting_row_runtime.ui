@@ -1,0 +1,219 @@
+mod_setting_row:color {
+  width: 660px;
+  height: 66px;
+  ignore_event: true;
+  stroke: 1;
+  back_color: #1d1f2cff;
+
+  #setting_label:label {
+    @"asset/base/style/main#bold_label";
+    x: 14px;
+    y: 8px;
+    width: 390px;
+    height: 22px;
+    size: 14;
+    align_x: Left;
+    align_y: Center;
+    text: "Setting";
+  }
+
+  #setting_description:label {
+    @"asset/base/style/main#label";
+    x: 14px;
+    y: 31px;
+    width: 360px;
+    height: 25px;
+    size: 12;
+    align_x: Left;
+    align_y: Center;
+    text: "";
+  }
+
+  #setting_status_badge:color {
+    x: 392px;
+    y: 21px;
+    width: 72px;
+    height: 24px;
+    visible: false;
+    ignore_event: true;
+    stroke: 1;
+    back_color: #145648ff;
+
+    #setting_status_text:label {
+      @"asset/base/style/main#bold_label";
+      width: 72px;
+      height: 24px;
+      size: 10;
+      align_x: Center;
+      align_y: Center;
+      text: "Saved";
+    }
+  }
+
+  #setting_toggle:color {
+    x: 472px;
+    y: 15px;
+    width: 174px;
+    height: 36px;
+    visible: false;
+    ignore_event: true;
+    stroke: 1;
+    back_color: #171822ff;
+
+    #setting_toggle_off:color {
+      x: 88px;
+      y: 4px;
+      width: 82px;
+      height: 28px;
+      ignore_event: true;
+      stroke: 1;
+      back_color: #4a171cff;
+      #label:label {
+        @"asset/base/style/main#bold_label";
+        width: 82px;
+        height: 28px;
+        size: 12;
+        align_x: Center;
+        align_y: Center;
+        text: "OFF";
+      }
+    }
+
+    #setting_toggle_on:color {
+      x: 4px;
+      y: 4px;
+      width: 82px;
+      height: 28px;
+      ignore_event: true;
+      stroke: 1;
+      back_color: #145648ff;
+      #label:label {
+        @"asset/base/style/main#bold_label";
+        width: 82px;
+        height: 28px;
+        size: 12;
+        align_x: Center;
+        align_y: Center;
+        text: "ON";
+      }
+    }
+    #native_toggle_hitbox:button {
+      width: 100%;
+      height: 100%;
+      ignore_event: false;
+      source: "";
+      color: #00000000;
+      hover: { color: #00000000; }
+      active: { color: #00000000; }
+    }
+  }
+
+  #setting_choice:color {
+    x: 410px;
+    y: 15px;
+    width: 236px;
+    height: 36px;
+    visible: false;
+    ignore_event: true;
+    stroke: 1;
+    back_color: #171822ff;
+
+    #setting_choice_previous:color {
+      x: 4px;
+      y: 4px;
+      width: 32px;
+      height: 28px;
+      ignore_event: true;
+      stroke: 1;
+      back_color: #252735ff;
+      #label:label {
+        @"asset/base/style/main#bold_label";
+        width: 32px;
+        height: 28px;
+        size: 14;
+        align_x: Center;
+        align_y: Center;
+        text: "<";
+      }
+      #native_previous_hitbox:button {
+        width: 100%;
+        height: 100%;
+        ignore_event: false;
+        source: "";
+        color: #00000000;
+        hover: { color: #00000000; }
+        active: { color: #00000000; }
+      }
+    }
+
+    #setting_choice_value:label {
+      @"asset/base/style/main#bold_label";
+      x: 40px;
+      y: 4px;
+      width: 156px;
+      height: 28px;
+      size: 12;
+      align_x: Center;
+      align_y: Center;
+      text: "-";
+    }
+
+    #setting_choice_next:color {
+      x: 200px;
+      y: 4px;
+      width: 32px;
+      height: 28px;
+      ignore_event: true;
+      stroke: 1;
+      back_color: #252735ff;
+      #label:label {
+        @"asset/base/style/main#bold_label";
+        width: 32px;
+        height: 28px;
+        size: 14;
+        align_x: Center;
+        align_y: Center;
+        text: ">";
+      }
+      #native_next_hitbox:button {
+        width: 100%;
+        height: 100%;
+        ignore_event: false;
+        source: "";
+        color: #00000000;
+        hover: { color: #00000000; }
+        active: { color: #00000000; }
+      }
+    }
+  }
+
+  #setting_button:color {
+    x: 472px;
+    y: 15px;
+    width: 174px;
+    height: 36px;
+    visible: false;
+    ignore_event: true;
+    stroke: 1;
+    back_color: #252735ff;
+
+    #setting_button_label:label {
+      @"asset/base/style/main#bold_label";
+      width: 174px;
+      height: 36px;
+      size: 12;
+      align_x: Center;
+      align_y: Center;
+      text: "Run";
+    }
+    #native_setting_button_hitbox:button {
+      width: 100%;
+      height: 100%;
+      ignore_event: false;
+      source: "";
+      color: #00000000;
+      hover: { color: #00000000; }
+      active: { color: #00000000; }
+    }
+  }
+}

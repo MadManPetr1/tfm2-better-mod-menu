@@ -1,0 +1,25 @@
+mod_setting_category:empty {
+  width: 660px;
+  height: 24px;
+  ignore_event: true;
+
+  #setting_category_accent:color {
+    x: 0px;
+    y: 5px;
+    width: 3px;
+    height: 14px;
+    ignore_event: true;
+    color: #37d5b3ff;
+  }
+
+  #setting_category_label:label {
+    @"asset/base/style/main#bold_label";
+    x: 12px;
+    width: 648px;
+    height: 24px;
+    size: 13;
+    align_x: Left;
+    align_y: Center;
+    text: "Category";
+  }
+}
