@@ -1,41 +1,30 @@
-# Better Mod Menu: modder guide
+# Better Mod Menu integration guide
 
-Better Mod Menu does not replace the game's mod API. Your mod still loads,
-saves, and validates its own behavior. Better Mod Menu only provides an
-optional visual bridge for settings and actions.
+Better Mod Menu integration is optional. A normal TFM2 mod works without it,
+and Better Mod Menu never replaces your mod's validation or runtime logic.
 
-A mod needs at most two optional Better Mod Menu integration files beside its
-normal `mod.mod_info`:
+## Choose what you need
 
-- `better_mod_menu.json` for richer display metadata, settings, and actions.
-- `better_mod_menu_profile.json` for the optional author profile card.
+| Goal | Add this beside `mod.mod_info` |
+| --- | --- |
+| Rich settings, actions, or display text | `better_mod_menu.json` |
+| Author bio, icon, and contact links | `better_mod_menu_profile.json` |
+| Thumbnail in the mod header | `thumbnail.png` |
+| Wide image in the Overview tab | `banner.png` |
 
-Use either file independently or both together. Schema and example files stay
-in the Better Mod Menu repository/release and do not need to be copied into
-your mod.
+Use any combination. The schema files stay in the Better Mod Menu repository;
+your mod only ships its own JSON and artwork.
 
-## Five-minute setup
+## Five-minute settings setup
 
-1. Keep a normal `mod.mod_info`. This remains the authoritative source for the
-   mod name, version, author, description, and dependencies.
-2. Add `better_mod_menu.json` beside it.
-3. Set `mod_id` and `name` to the same values used by your mod.
-4. Add the controls you want Better Mod Menu to render.
-5. Read your settings JSON periodically if settings should apply without a
-   restart.
+1. Copy `better_mod_menu.json.example` into your mod root.
+2. Rename it to `better_mod_menu.json`.
+3. Match `mod_id` and `name` to `mod.mod_info`.
+4. Choose `mod` or `game_data` storage.
+5. Add up to seven controls.
+6. Let your mod read and validate the resulting settings or action request.
 
-If Better Mod Menu is not installed, your mod continues to work normally.
-
-For the easiest start, copy `better_mod_menu.json.example` into your mod root,
-rename it to `better_mod_menu.json`, and edit the example values. Keep the
-`$schema` line points to the public schema, so editors such as VS Code can
-suggest fields and flag typing mistakes without another local file. The
-profile works the same way: copy
-`better_mod_menu_profile.json.example`, rename it to
-`better_mod_menu_profile.json`, and edit it. Both files belong beside
-`mod.mod_info`.
-
-## Smallest useful example
+Smallest useful manifest:
 
 ```json
 {
@@ -58,82 +47,28 @@ profile works the same way: copy
 }
 ```
 
-With `storage: "game_data"`, the toggle is saved to:
+With `game_data` storage, the setting is written to:
 
 ```text
 %APPDATA%/TeamSamoyed/TeamfightManager2/data/my_mod/settings.json
 ```
 
-The resulting file is ordinary JSON:
+Unknown top-level keys are preserved. Your mod may keep additional state in
+the same JSON file, but it must still validate values before using them.
 
-```json
-{
-  "enabled": false
-}
-```
+## Available controls
 
-Unknown top-level keys are preserved, so your mod may safely keep additional
-state in the same file.
+| Type | Best for | What Better Mod Menu writes |
+| --- | --- | --- |
+| `toggle` | Boolean settings | The selected Boolean value |
+| `choice` | A short predefined list | The selected JSON value |
+| `button` | A requested operation | An action name in the action file |
+| `file_cards` | Selecting a recent backup or export | An action name and zero-based file index |
 
-## Controls
+Use the same optional `category` text on adjacent controls to create a compact
+section heading. Keep categories short and order controls as they should appear.
 
-### Toggle
-
-Use for Boolean settings. Better Mod Menu renders the native-styled
-`ON | OFF` control and saves immediately.
-
-```json
-{
-  "type": "toggle",
-  "key": "show_overlay",
-  "label": "Show overlay",
-  "category": "Interface",
-  "description": "Display the match overlay.",
-  "default": true
-}
-```
-
-### Choice
-
-Use for a short list of predefined values. Values may be strings, numbers,
-Booleans, or JSON values.
-
-```json
-{
-  "type": "choice",
-  "key": "detail_level",
-  "label": "Detail level",
-  "category": "Interface",
-  "options": [
-    { "label": "Compact", "value": "compact" },
-    { "label": "Full", "value": "full" }
-  ]
-}
-```
-
-### Button action
-
-Buttons do not execute mod code directly. They create a small action request
-that your DLL consumes and deletes.
-
-```json
-{
-  "type": "button",
-  "action": "rebuild_cache",
-  "label": "Rebuild cache",
-  "category": "Maintenance",
-  "description": "Regenerate cached data.",
-  "button_label": "Rebuild"
-}
-```
-
-Default action file:
-
-```text
-better_mod_menu.actions.json
-```
-
-Payload:
+Buttons and file cards do not execute code. They create a request such as:
 
 ```json
 {
@@ -141,111 +76,59 @@ Payload:
 }
 ```
 
-Your mod should treat action files as untrusted input: validate the action,
-perform the operation, report errors in its own log, and delete the request.
+Your mod must validate, perform, report, and delete that request.
 
-### File cards
+The [manifest reference](MANIFEST.md) documents storage, action files, display
+overrides, and the full control format. The public
+[schema](better_mod_menu.schema.json) provides editor completion and validation.
 
-Use for a small set of recent files such as verified backups. Better Mod Menu
-sorts by modified time and renders up to five dated cards.
+## Author profile
 
-```json
-{
-  "type": "file_cards",
-  "action": "import_backup",
-  "label": "Recent verified backups",
-  "category": "Backup and recovery",
-  "description": "Select one to import it.",
-  "directory": "my_mod_backups",
-  "filename_contains": "__verified_",
-  "extension": "data",
-  "limit": 5
-}
-```
-
-Selecting the first card produces:
-
-```json
-{
-  "action": "import_backup",
-  "index": 0
-}
-```
-
-The directory is relative to the game's data directory. Better Mod Menu never
-interprets or imports the file itself; that remains your mod's responsibility.
-
-## Categories
-
-Give adjacent controls the same `category` text. Better Mod Menu inserts one
-compact heading whenever the category changes. No separate category registry
-is required.
-
-Keep categories short and use manifest order:
-
-```text
-General
-Interface
-Backup and recovery
-Advanced
-```
-
-## Preview artwork
-
-These files are optional and require no manifest fields:
-
-- `thumbnail.png` replaces the fallback cog in the header.
-- `banner.png` appears at the top of Overview.
-- `assets/banner.png` is accepted as a fallback location.
-
-Without artwork, Better Mod Menu retains its normal fallback presentation.
-
-## Metadata and dependency health
-
-Keep real dependency declarations in `mod.mod_info`. Better Mod Menu uses those
-entries to detect missing, disabled, and version-incompatible dependencies.
-
-The manifest `display` object can override title, author, version, and summary.
-Source and dependencies always come from the installed mod and `mod.mod_info`.
-
-## Optional author profile
-
-Place `better_mod_menu_profile.json` beside `mod.mod_info`:
+Copy `better_mod_menu_profile.json.example`, rename it to
+`better_mod_menu_profile.json`, and keep it beside `mod.mod_info`:
 
 ```json
 {
   "$schema": "https://raw.githubusercontent.com/MadManPetr1/tfm2-better-mod-menu/main/better_mod_menu_profile.schema.json",
   "schema_version": 1,
-  "display_name": "MadManPetr1",
+  "display_name": "YourName",
   "profile_icon": "profile_icon.png",
-  "bio": "Developer and programmer. Modding TFM2, mainly focusing on UX/UI and realism.",
+  "bio": "A short description of your TFM2 work.",
   "links": {
-    "github": "MadManPetr1",
-    "youtube": "@l95_madmanpetr1",
-    "discord": "l95madmanpetr1"
+    "github": "YourGitHubName",
+    "discord": "your.discord.username"
   }
 }
 ```
 
-The bio is limited to 240 characters. Only validated GitHub usernames and
-YouTube handles become clickable links. A validated modern Discord username is
-shown as a contact line and is copied when clicked; it is not opened as a URL.
-Set `profile_icon` to `profile_icon.png` or `profile_icon.jpg` to show that
-local file at 32 by 32 pixels. Arbitrary URLs, other filenames, network image
-requests, and other providers are not supported. The card is optional and is
-not identity verification.
+- Bio length is limited to 240 characters.
+- Profile icons may be `profile_icon.png` or `profile_icon.jpg`.
+- GitHub and YouTube values are validated before becoming links.
+- A modern Discord username is shown as copyable contact text.
+- Remote images and arbitrary URLs are not loaded.
 
-## Safety rules
+Use the public [profile schema](better_mod_menu_profile.schema.json) for the
+complete field rules.
 
-- Use only relative paths.
-- `..`, rooted paths, and drive-prefixed paths are rejected.
-- Use no more than seven controls.
-- A choice must contain at least one option.
-- Mods must validate every requested action themselves.
-- Do not require Better Mod Menu for core mod behavior.
+## Artwork
 
-For editor validation and the complete field reference, use the public
-`better_mod_menu.schema.json` and `better_mod_menu_profile.schema.json` links
-already included in the examples. Do not copy the schemas into your mod. The
-two `.example` files are copy-ready starting points; a complete production
-settings example is also available in Intro Skip's `better_mod_menu.json`.
+Artwork needs no manifest field:
+
+- `thumbnail.png` appears in the mod header.
+- `banner.png` appears at the top of the Overview tab.
+- `assets/banner.png` remains accepted as a fallback.
+
+Without artwork, Better Mod Menu uses its normal fallback presentation.
+
+## Release checklist
+
+- Keep `mod.mod_info` authoritative for dependencies and supported game versions.
+- Match the manifest `mod_id` and `name` exactly.
+- Use only relative paths; rooted paths, drive prefixes, and `..` are rejected.
+- Keep core mod behavior independent of Better Mod Menu.
+- Treat settings and action files as untrusted input.
+- Test the mod both with and without Better Mod Menu enabled.
+- Validate JSON against the public schemas before packaging.
+
+For a complete working integration, see Intro Skip's
+`better_mod_menu.json` in its source repository.

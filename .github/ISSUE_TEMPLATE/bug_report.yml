@@ -1,0 +1,72 @@
+name: Bug report
+description: Report a reproducible Better Mod Menu problem.
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+body:
+  - type: input
+    id: game-version
+    attributes:
+      label: Teamfight Manager 2 version
+      placeholder: "0.5.3"
+    validations:
+      required: true
+  - type: input
+    id: mod-version
+    attributes:
+      label: Better Mod Menu version
+      placeholder: "0.6.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      options:
+        - Mod list, search, or filters
+        - Enable, disable, or restart flow
+        - Overview artwork or metadata
+        - Settings or action controls
+        - Author profile
+        - Dependencies or compatibility warning
+        - Installation or startup
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Include the smallest enabled-mod list that still reproduces the problem.
+      placeholder: |
+        1. Open...
+        2. Select...
+        3. Observe...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: integration
+    attributes:
+      label: Relevant integration file
+      description: If a specific mod triggers the issue, paste its sanitized Better Mod Menu JSON.
+      render: json
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I reproduced this on the declared game version.
+          required: true
+        - label: I removed private paths, usernames, and save information.
+          required: true

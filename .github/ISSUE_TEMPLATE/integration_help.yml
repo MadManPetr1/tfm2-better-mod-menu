@@ -1,0 +1,43 @@
+name: Mod integration help
+description: Ask a focused question about a Better Mod Menu manifest or author profile.
+title: "[Integration]: "
+labels: ["integration"]
+body:
+  - type: dropdown
+    id: file
+    attributes:
+      label: Integration file
+      options:
+        - better_mod_menu.json
+        - better_mod_menu_profile.json
+        - Artwork or display metadata
+        - Unsure
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: What should the integration do?
+    validations:
+      required: true
+  - type: textarea
+    id: json
+    attributes:
+      label: Current sanitized JSON
+      description: Remove local paths, private contact details, and secrets.
+      render: json
+  - type: textarea
+    id: result
+    attributes:
+      label: Current result or validation error
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I checked the modder guide and public schema first.
+          required: true
+        - label: My mod still works without Better Mod Menu installed.
+          required: true

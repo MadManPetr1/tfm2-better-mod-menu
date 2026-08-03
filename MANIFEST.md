@@ -1,71 +1,83 @@
-# Better Mod Menu manifest
+# Better Mod Menu manifest reference
 
-Place `better_mod_menu.json` beside `mod.mod_info`. The manifest is optional:
+Place `better_mod_menu.json` beside `mod.mod_info`. The manifest is optional;
+without it, Better Mod Menu uses the metadata supplied by the game.
 
-- Without it, Better Mod Menu shows the metadata supplied by `mod.mod_info`.
-- With it, declared title, author, version, and summary fields replace the
-  corresponding game metadata.
-- Omitted `display` fields continue to use `mod.mod_info`; values are never duplicated.
-- Source and dependencies always use the installed source and `mod.mod_info`.
-- A root `thumbnail.png` replaces the fallback cog; `assets/thumbnail-master.png` keeps the original 128×128 pixel art.
-- A root `banner.png` is shown above the Overview text. `assets/banner.png` is also accepted.
+## Root fields
 
-Use `schema_version: 1`, the same `mod_id` and display `name` as the mod, and at most seven controls.
+| Field | Purpose |
+| --- | --- |
+| `$schema` | Public schema URL for editor validation |
+| `schema_version` | Must be `1` |
+| `mod_id` | Must match the installed mod ID |
+| `name` | Must match the mod name |
+| `storage` | `mod` or `game_data` |
+| `settings_file` | Relative JSON settings path |
+| `actions_file` | Optional relative action-request path |
+| `display` | Optional title, author, version, and summary overrides |
+| `controls` | Up to seven controls in display order |
 
-Add the same optional `category` text to adjacent controls to render a compact
-section heading. Categories are displayed in manifest order.
+Omitted display fields fall back to `mod.mod_info`. Installed source and
+dependencies always come from the game and cannot be overridden.
+
+## Storage
+
+`game_data` resolves below:
+
+```text
+%APPDATA%/TeamSamoyed/TeamfightManager2/data/<mod_id>
+```
+
+`mod` resolves below the installed mod folder. Paths must be relative and may
+not contain `..`, a drive prefix, or a rooted path.
+
+Toggle and choice controls update the settings JSON immediately while
+preserving unknown top-level keys.
+
+## Controls
+
+### Toggle
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/MadManPetr1/tfm2-better-mod-menu/main/better_mod_menu.schema.json",
-  "schema_version": 1,
-  "mod_id": "example_mod",
-  "name": "Example Mod",
-  "storage": "game_data",
-  "settings_file": "settings.json",
-  "actions_file": "better_mod_menu.actions.json",
-  "display": {
-    "summary": "A cleaner summary for Better Mod Menu."
-  },
-  "controls": [
-    {
-      "type": "toggle",
-      "key": "enabled",
-      "label": "Feature",
-      "category": "General",
-      "description": "Enable the feature.",
-      "default": true
-    },
-    {
-      "type": "choice",
-      "key": "mode",
-      "label": "Mode",
-      "options": [
-        { "label": "Safe", "value": "safe" },
-        { "label": "Fast", "value": "fast" }
-      ]
-    },
-    {
-      "type": "button",
-      "action": "rebuild",
-      "label": "Rebuild cache",
-      "button_label": "Rebuild"
-    }
+  "type": "toggle",
+  "key": "enabled",
+  "label": "Feature",
+  "category": "General",
+  "description": "Enable the feature.",
+  "default": true
+}
+```
+
+### Choice
+
+```json
+{
+  "type": "choice",
+  "key": "mode",
+  "label": "Mode",
+  "options": [
+    { "label": "Safe", "value": "safe" },
+    { "label": "Fast", "value": "fast" }
   ]
 }
 ```
 
-`storage` may be `mod` or `game_data`. `game_data` resolves below
-`%APPDATA%/TeamSamoyed/TeamfightManager2/data/<mod_id>`; `mod` resolves below
-the installed mod directory. Paths must be relative and cannot contain `..`.
+### Button action
 
-Toggle and choice controls update the JSON settings file immediately while
-preserving unknown top-level keys. Button controls write
-`{"action":"..."}` to the action file.
+```json
+{
+  "type": "button",
+  "action": "rebuild",
+  "label": "Rebuild cache",
+  "button_label": "Rebuild"
+}
+```
 
-`file_cards` renders up to five compact dated file panels. Its `directory` is
-relative to the game's data directory. Selecting a card writes its zero-based
-`index` with the action:
+Buttons write an action request; the receiving mod remains responsible for
+validation and execution.
+
+### File cards
 
 ```json
 {
@@ -74,11 +86,23 @@ relative to the game's data directory. Selecting a card writes its zero-based
   "label": "Recent verified backups",
   "description": "Select one to import it.",
   "directory": "example_backups",
-  "filename_contains": "__before_mod_load_",
+  "filename_contains": "__verified_",
   "extension": "data",
   "limit": 5
 }
 ```
 
-The receiving mod reads `{"action":"import_backup","index":0}` and remains
-responsible for validating and performing the operation.
+The directory is relative to game data. Selecting a card writes the action and
+its zero-based `index`; Better Mod Menu never interprets or imports the file.
+
+## Categories and artwork
+
+Adjacent controls with the same optional `category` render beneath one compact
+heading. Categories appear in manifest order.
+
+`thumbnail.png` replaces the fallback header icon. `banner.png` appears above
+the Overview text, with `assets/banner.png` accepted as a fallback.
+
+For copy-ready starting points, use
+[better_mod_menu.json.example](better_mod_menu.json.example) and the
+[public schema](better_mod_menu.schema.json).

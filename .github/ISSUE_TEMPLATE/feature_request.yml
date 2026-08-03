@@ -1,0 +1,25 @@
+name: Feature request
+description: Suggest a focused player or mod-author improvement.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What player or mod-author workflow is difficult today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+    validations:
+      required: true
+  - type: textarea
+    id: safety
+    attributes:
+      label: Compatibility and safety impact
+      description: Could this change mod state, write files, execute actions, or affect saves?
+    validations:
+      required: true

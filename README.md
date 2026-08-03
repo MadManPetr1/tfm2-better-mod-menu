@@ -1,78 +1,85 @@
+<div align="center">
+
+<img src="thumbnail.png" alt="Better Mod Menu icon" width="128">
+
 # Better Mod Menu
 
-A focused replacement surface for the **Teamfight Manager 2** mod manager.
+A clearer, faster mod manager for **Teamfight Manager 2**.
 
-> [!IMPORTANT]
-> Version **0.5.3** is built for Teamfight Manager 2 **0.5.3** on Windows.
+**Better Mod Menu 0.6.0 · TFM2 0.5.3 · Windows**
 
-Better Mod Menu keeps the game's native mod data and interaction model while
-adding faster navigation, richer previews, dependency warnings, and an
-optional manifest bridge for mod-owned settings.
+</div>
 
-## Features
+![Better Mod Menu overview](docs/images/overview.png)
 
-- Search installed mods by name.
-- Filter all, Local, and Workshop mods.
-- Navigate and toggle mods with mouse or keyboard.
-- Inspect richer metadata, dependency health, thumbnails, and banners.
-- Render optional manifest-driven toggles, choices, actions, and file cards.
-- Apply compatible setting changes immediately while preserving unknown JSON
-  fields.
-- Restart the game cleanly when pending mod changes require it.
+Better Mod Menu keeps the game's native mod system, but makes installed mods
+easier to search, understand, configure, and troubleshoot.
 
-## Safety and scope
+## Highlights
 
-- Better Mod Menu does not replace the game mod API.
-- Each mod remains responsible for validating and applying its own behavior.
-- Manifest paths are restricted to the declaring mod or its game-data folder.
-- Manifest IDs must match the installed mod ID.
-- Unsupported or malformed manifests are ignored.
-- Career saves are never opened or modified by Better Mod Menu.
+- Search by mod or author and filter Local or Workshop mods.
+- Enable or disable mods with mouse or keyboard controls.
+- See dependency problems before restarting the game.
+- View mod thumbnails, banners, summaries, settings, and author profiles.
+- Apply supported settings immediately without discarding unknown JSON data.
+- Restart cleanly when a mod change requires it.
 
-## Installation
+<details>
+<summary><strong>More screenshots</strong></summary>
 
-Download `better-mod-menu-v0.5.3.zip` from
-[GitHub Releases](https://github.com/MadManPetr1/tfm2-better-mod-menu/releases).
-Do not use GitHub's automatic source-code archive.
+### Settings
 
-Extract the included `mod_menu` folder into:
+![Better Mod Menu settings](docs/images/settings.png)
 
-```text
-...\SteamLibrary\steamapps\common\Teamfight Manager2\mods\
-```
+### Author profile
 
-Confirm this structure:
+![Better Mod Menu author profile](docs/images/author-profile.png)
 
-```text
-Teamfight Manager2\mods\mod_menu\mod.mod_info
-Teamfight Manager2\mods\mod_menu\mod_menu.dll
-Teamfight Manager2\mods\mod_menu\ui\
-```
+</details>
 
-Enable **Better Mod Menu** in the native Mods menu and restart the game.
+## Install
 
-## Optional mod integration
+1. Download `better-mod-menu-v0.6.0.zip` from
+   [GitHub Releases](https://github.com/MadManPetr1/tfm2-better-mod-menu/releases).
+   Do not use GitHub's automatic source-code archive.
+2. Extract the included `mod_menu` folder into:
 
-Mods work normally without a Better Mod Menu manifest. Authors who want rich
-settings can place `better_mod_menu.json` beside `mod.mod_info`.
+   ```text
+   ...\SteamLibrary\steamapps\common\Teamfight Manager2\mods\
+   ```
 
-Authors may also add an optional `better_mod_menu_profile.json` for a short
-hover profile with validated GitHub and YouTube links plus a Discord contact.
-An optional local profile icon is supported. Invalid or missing profiles are
-ignored and never affect normal mod loading.
+3. Enable **Better Mod Menu** in the native Mods screen and restart the game.
 
-These are the only two Better Mod Menu integration JSON files a mod may need.
-Their `$schema` values use the public GitHub schemas, so schema files do not
-need to be copied into each mod.
+The final folder must contain `mod_menu\mod.mod_info` and
+`mod_menu\mod_menu.dll`.
 
-See:
+## For mod authors
 
-- [Manifest reference](MANIFEST.md)
-- [Modder guide](MODDER_GUIDE.md)
-- [Settings example](better_mod_menu.json.example) and [schema](better_mod_menu.schema.json)
-- [Profile example](better_mod_menu_profile.json.example) and [schema](better_mod_menu_profile.schema.json)
+Mods require no special integration and continue to work without Better Mod
+Menu. Two optional files unlock the richer interface:
 
-## Building from source
+| File | Purpose |
+| --- | --- |
+| `better_mod_menu.json` | Display metadata, settings, actions, and file cards |
+| `better_mod_menu_profile.json` | Author bio, local profile icon, and validated contact links |
+
+Start with the [five-minute modder guide](MODDER_GUIDE.md). The
+[manifest reference](MANIFEST.md), copy-ready
+[settings example](better_mod_menu.json.example),
+[profile example](better_mod_menu_profile.json.example), and public
+[settings](better_mod_menu.schema.json) / [profile](better_mod_menu_profile.schema.json)
+schemas cover the complete format.
+
+## Safety and compatibility
+
+- Built and runtime-tested for Teamfight Manager 2 `0.5.3`.
+- Does not replace the game mod API or edit career saves.
+- Treats manifests and action files as untrusted input.
+- Restricts declared paths to the owning mod or its game-data directory.
+- Ignores invalid optional integration files without blocking normal mod loading.
+- Leaves validation and gameplay behavior under the owning mod's control.
+
+## Build and verify
 
 Install the Teamfight Manager 2 `0.5.3` Mod SDK, then run:
 
@@ -82,16 +89,17 @@ Install the Teamfight Manager 2 `0.5.3` Mod SDK, then run:
 .\scripts\package_release.ps1 -SdkDir "C:\path\to\Teamfight Manager2\mod-sdk-0.5.3"
 ```
 
-## License and attribution
+Contribution expectations are kept in [CONTRIBUTING.md](CONTRIBUTING.md).
+Security-sensitive reports should follow [SECURITY.md](SECURITY.md).
+
+## License
 
 Source code and documentation are licensed under
 [GPL-3.0-or-later](LICENSE), with a narrow
 [TFM2 linking exception and attribution terms](LICENSE-EXCEPTION.md).
-Redistributed versions must keep the source available and preserve the
-original author/repository credit. Forks must use their own name and branding.
+Redistributions must preserve the original author and repository credit;
+forks must use their own name and branding. See
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for bundled icon attribution.
 
-The bundled status icons are derived from Apache-2.0 licensed icon projects;
-see [third-party notices](THIRD_PARTY_NOTICES.md).
-
-This is an independent community mod and is not affiliated with or endorsed by
-Team Samoyed.
+This independent community mod is not affiliated with or endorsed by Team
+Samoyed.
