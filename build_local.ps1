@@ -65,6 +65,7 @@ $engineUi = Find-SdkRlib "libengine_ui-*.rlib"
 $engineCore = Find-SdkRlib "libengine_core-*.rlib"
 $gameCore = Find-SdkRlib "libgame_core-*.rlib"
 $arrayvec = Find-SdkRlib "libarrayvec-*.rlib"
+$common = Find-SdkRlib "libcommon-*.rlib"
 
 $flags = @(
     "-L", "dependency=$depsDir",
@@ -73,6 +74,7 @@ $flags = @(
     "--extern", "engine_core=$engineCore",
     "--extern", "game_core=$gameCore",
     "--extern", "arrayvec=$arrayvec",
+    "--extern", "common=$common",
     "-L", "native=$nativeDir"
 )
 $env:CARGO_ENCODED_RUSTFLAGS = $flags -join [char]31

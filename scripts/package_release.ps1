@@ -42,25 +42,74 @@ foreach ($name in @(
     "mod_menu.dll",
     "mod.mod_info",
     "mod.override_info",
-    "better_mod_menu.schema.json",
-    "README.md",
-    "CHANGELOG.md",
+    "better_mod_menu_profile.json",
+    "profile_icon.png",
+    "thumbnail.png",
     "LICENSE",
     "LICENSE-EXCEPTION.md",
     "NOTICE.md",
-    "MANIFEST.md",
-    "MODDER_GUIDE.md",
     "THIRD_PARTY_NOTICES.md"
 )) {
     Copy-Item -LiteralPath (Join-Path $root $name) -Destination (Join-Path $runtimeRoot $name)
 }
 
-Copy-Item -LiteralPath (Join-Path $root "ui") -Destination (Join-Path $runtimeRoot "ui") -Recurse
+$docsRoot = Join-Path $releaseRoot "docs"
+New-Item -ItemType Directory -Path $docsRoot -Force | Out-Null
+foreach ($name in @(
+    "better_mod_menu.schema.json",
+    "better_mod_menu.json.example",
+    "better_mod_menu_profile.json.example",
+    "better_mod_menu_profile.schema.json",
+    "README.md",
+    "CHANGELOG.md",
+    "MANIFEST.md",
+    "MODDER_GUIDE.md"
+)) {
+    Copy-Item -LiteralPath (Join-Path $root $name) -Destination (Join-Path $docsRoot $name)
+}
+
+$runtimeUi = Join-Path $runtimeRoot "ui"
+$runtimeLayouts = Join-Path $runtimeUi "layout"
+$runtimeComponents = Join-Path $runtimeLayouts "mods_component"
+New-Item -ItemType Directory -Path $runtimeComponents -Force | Out-Null
+Copy-Item `
+    -LiteralPath (Join-Path $root "ui/icons") `
+    -Destination (Join-Path $runtimeUi "icons") `
+    -Recurse
+Copy-Item `
+    -LiteralPath (Join-Path $root "ui/layout/better_mod_menu_runtime.ui") `
+    -Destination (Join-Path $runtimeLayouts "better_mod_menu_runtime.ui")
+foreach ($name in @(
+    "bmm_mod_row_runtime.ui",
+    "mod_file_cards_row_runtime.ui",
+    "mod_setting_category_runtime.ui",
+    "mod_setting_row_runtime.ui",
+    "mod_slot_runtime.ui"
+)) {
+    Copy-Item `
+        -LiteralPath (Join-Path $root "ui/layout/mods_component/$name") `
+        -Destination (Join-Path $runtimeComponents $name)
+}
 New-Item -ItemType Directory -Path (Join-Path $runtimeRoot "third_party") -Force | Out-Null
 Copy-Item `
     -LiteralPath (Join-Path $root "third_party/licenses") `
     -Destination (Join-Path $runtimeRoot "third_party/licenses") `
     -Recurse
 
-Compress-Archive -LiteralPath $runtimeRoot -DestinationPath $archive -CompressionLevel Optimal
+$forbiddenReleaseFiles = @(
+    Get-ChildItem -LiteralPath $releaseRoot -Recurse -File |
+        Where-Object {
+            $_.Name -like "*inspector*" -or
+            $_.Name -like "better_mod_menu.dev*" -or
+            $_.FullName -match '[\\/]ui[\\/]layout[\\/]dev[\\/]'
+        }
+)
+if ($forbiddenReleaseFiles.Count -gt 0) {
+    throw "Developer-only files entered the release payload: $($forbiddenReleaseFiles.FullName -join ', ')"
+}
+
+Compress-Archive `
+    -Path (Join-Path $releaseRoot "*") `
+    -DestinationPath $archive `
+    -CompressionLevel Optimal
 Write-Host "Release package created: $archive"

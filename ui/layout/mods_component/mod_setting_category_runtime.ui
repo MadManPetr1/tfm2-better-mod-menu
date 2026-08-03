@@ -1,9 +1,9 @@
-mod_setting_category:empty {
-  width: 660px;
+bmm_setting_category:empty {
+  width: 694px;
   height: 24px;
   ignore_event: true;
 
-  #setting_category_accent:color {
+  #bmm_setting_category_accent:color {
     x: 0px;
     y: 5px;
     width: 3px;
@@ -12,10 +12,10 @@ mod_setting_category:empty {
     color: #37d5b3ff;
   }
 
-  #setting_category_label:label {
+  #bmm_setting_category_label:label {
     @"asset/base/style/main#bold_label";
     x: 12px;
-    width: 648px;
+    width: 682px;
     height: 24px;
     size: 13;
     align_x: Left;

@@ -4,6 +4,16 @@ Better Mod Menu does not replace the game's mod API. Your mod still loads,
 saves, and validates its own behavior. Better Mod Menu only provides an
 optional visual bridge for settings and actions.
 
+A mod needs at most two optional Better Mod Menu integration files beside its
+normal `mod.mod_info`:
+
+- `better_mod_menu.json` for richer display metadata, settings, and actions.
+- `better_mod_menu_profile.json` for the optional author profile card.
+
+Use either file independently or both together. Schema and example files stay
+in the Better Mod Menu repository/release and do not need to be copied into
+your mod.
+
 ## Five-minute setup
 
 1. Keep a normal `mod.mod_info`. This remains the authoritative source for the
@@ -16,10 +26,20 @@ optional visual bridge for settings and actions.
 
 If Better Mod Menu is not installed, your mod continues to work normally.
 
+For the easiest start, copy `better_mod_menu.json.example` into your mod root,
+rename it to `better_mod_menu.json`, and edit the example values. Keep the
+`$schema` line points to the public schema, so editors such as VS Code can
+suggest fields and flag typing mistakes without another local file. The
+profile works the same way: copy
+`better_mod_menu_profile.json.example`, rename it to
+`better_mod_menu_profile.json`, and edit it. Both files belong beside
+`mod.mod_info`.
+
 ## Smallest useful example
 
 ```json
 {
+  "$schema": "https://raw.githubusercontent.com/MadManPetr1/tfm2-better-mod-menu/main/better_mod_menu.schema.json",
   "schema_version": 1,
   "mod_id": "my_mod",
   "name": "My Mod",
@@ -185,8 +205,35 @@ Without artwork, Better Mod Menu retains its normal fallback presentation.
 Keep real dependency declarations in `mod.mod_info`. Better Mod Menu uses those
 entries to detect missing, disabled, and version-incompatible dependencies.
 
-The manifest `display` object is only a presentation override. Declared fields
-replace their normal preview value; omitted fields fall back to `mod.mod_info`.
+The manifest `display` object can override title, author, version, and summary.
+Source and dependencies always come from the installed mod and `mod.mod_info`.
+
+## Optional author profile
+
+Place `better_mod_menu_profile.json` beside `mod.mod_info`:
+
+```json
+{
+  "$schema": "https://raw.githubusercontent.com/MadManPetr1/tfm2-better-mod-menu/main/better_mod_menu_profile.schema.json",
+  "schema_version": 1,
+  "display_name": "MadManPetr1",
+  "profile_icon": "profile_icon.png",
+  "bio": "Developer and programmer. Modding TFM2, mainly focusing on UX/UI and realism.",
+  "links": {
+    "github": "MadManPetr1",
+    "youtube": "@l95_madmanpetr1",
+    "discord": "l95madmanpetr1"
+  }
+}
+```
+
+The bio is limited to 240 characters. Only validated GitHub usernames and
+YouTube handles become clickable links. A validated modern Discord username is
+shown as a contact line and is copied when clicked; it is not opened as a URL.
+Set `profile_icon` to `profile_icon.png` or `profile_icon.jpg` to show that
+local file at 32 by 32 pixels. Arbitrary URLs, other filenames, network image
+requests, and other providers are not supported. The card is optional and is
+not identity verification.
 
 ## Safety rules
 
@@ -197,6 +244,8 @@ replace their normal preview value; omitted fields fall back to `mod.mod_info`.
 - Mods must validate every requested action themselves.
 - Do not require Better Mod Menu for core mod behavior.
 
-For editor validation and the complete field reference, use
-`better_mod_menu.schema.json`. A complete production example is available in
-Intro Skip's `better_mod_menu.json`.
+For editor validation and the complete field reference, use the public
+`better_mod_menu.schema.json` and `better_mod_menu_profile.schema.json` links
+already included in the examples. Do not copy the schemas into your mod. The
+two `.example` files are copy-ready starting points; a complete production
+settings example is also available in Intro Skip's `better_mod_menu.json`.

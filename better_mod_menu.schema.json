@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://madmanpetr1.dev/tfm2/better_mod_menu.schema.json",
+  "$id": "https://raw.githubusercontent.com/MadManPetr1/tfm2-better-mod-menu/main/better_mod_menu.schema.json",
   "title": "Better Mod Menu manifest",
   "type": "object",
   "additionalProperties": false,
@@ -25,11 +25,6 @@
         "title": { "type": "string" },
         "author": { "type": "string" },
         "version": { "type": "string" },
-        "source": { "type": "string" },
-        "dependencies": {
-          "type": "array",
-          "items": { "type": "string" }
-        },
         "summary": { "type": "string" }
       }
     },

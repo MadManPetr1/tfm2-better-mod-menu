@@ -1,23 +1,23 @@
-owned_mod_row:color {
-  width: 758px;
+bmm_mod_row:color {
+  width: 734px;
   height: 52px;
   ignore_event: true;
   stroke: 1;
   back_color: #1d1f2cff;
 
-  #owned_row_name:label {
+  #bmm_mod_row_name:label {
     @"asset/base/style/main#label";
     x: 12px;
-    width: 268px;
+    width: 244px;
     height: 52px;
     size: 15;
     align_x: Left;
     align_y: Center;
     text: "";
   }
-  #owned_row_author:label {
+  #bmm_mod_row_author:label {
     @"asset/base/style/main#label";
-    x: 292px;
+    x: 268px;
     width: 154px;
     height: 52px;
     size: 14;
@@ -25,9 +25,9 @@ owned_mod_row:color {
     align_y: Center;
     text: "";
   }
-  #owned_row_source:label {
+  #bmm_mod_row_source:label {
     @"asset/base/style/main#label";
-    x: 446px;
+    x: 422px;
     width: 80px;
     height: 52px;
     size: 12;
@@ -35,20 +35,20 @@ owned_mod_row:color {
     align_y: Center;
     text: "";
   }
-  #owned_toggle_track:empty {
-    x: 532px;
+  #bmm_row_toggle_track:empty {
+    x: 508px;
     y: 7px;
-    width: 217px;
+    width: 214px;
     height: 38px;
     ignore_event: true;
-    #owned_toggle_base:color {
+    #bmm_row_toggle_base:color {
       width: 172px;
       height: 38px;
       ignore_event: true;
       stroke: 1;
       back_color: #00000000;
     }
-    #owned_toggle_thumb_0:color {
+    #bmm_row_toggle_thumb_0:color {
       x: 4px;
       y: 4px;
       width: 82px;
@@ -58,7 +58,7 @@ owned_mod_row:color {
       stroke: 1;
       back_color: #145648ff;
     }
-    #owned_toggle_thumb_1:color {
+    #bmm_row_toggle_thumb_1:color {
       x: 14px;
       y: 4px;
       width: 82px;
@@ -68,7 +68,7 @@ owned_mod_row:color {
       stroke: 1;
       back_color: #145648ff;
     }
-    #owned_toggle_thumb_2:color {
+    #bmm_row_toggle_thumb_2:color {
       x: 25px;
       y: 4px;
       width: 82px;
@@ -78,7 +78,7 @@ owned_mod_row:color {
       stroke: 1;
       back_color: #145648ff;
     }
-    #owned_toggle_thumb_3:color {
+    #bmm_row_toggle_thumb_3:color {
       x: 35px;
       y: 4px;
       width: 82px;
@@ -88,7 +88,7 @@ owned_mod_row:color {
       stroke: 1;
       back_color: #145648ff;
     }
-    #owned_toggle_thumb_4:color {
+    #bmm_row_toggle_thumb_4:color {
       x: 45px;
       y: 4px;
       width: 82px;
@@ -98,7 +98,7 @@ owned_mod_row:color {
       stroke: 1;
       back_color: #20223000;
     }
-    #owned_toggle_thumb_5:color {
+    #bmm_row_toggle_thumb_5:color {
       x: 55px;
       y: 4px;
       width: 82px;
@@ -108,7 +108,7 @@ owned_mod_row:color {
       stroke: 1;
       back_color: #4a171cff;
     }
-    #owned_toggle_thumb_6:color {
+    #bmm_row_toggle_thumb_6:color {
       x: 66px;
       y: 4px;
       width: 82px;
@@ -118,7 +118,7 @@ owned_mod_row:color {
       stroke: 1;
       back_color: #4a171cff;
     }
-    #owned_toggle_thumb_7:color {
+    #bmm_row_toggle_thumb_7:color {
       x: 76px;
       y: 4px;
       width: 82px;
@@ -128,7 +128,7 @@ owned_mod_row:color {
       stroke: 1;
       back_color: #4a171cff;
     }
-    #owned_toggle_thumb_8:color {
+    #bmm_row_toggle_thumb_8:color {
       x: 86px;
       y: 4px;
       width: 82px;
@@ -138,7 +138,7 @@ owned_mod_row:color {
       stroke: 1;
       back_color: #4a171cff;
     }
-    #owned_enabled:color {
+    #bmm_row_enabled:color {
       x: 4px;
       y: 4px;
       width: 82px;
@@ -156,7 +156,7 @@ owned_mod_row:color {
         text: "Enabled";
       }
     }
-    #owned_disabled:color {
+    #bmm_row_disabled:color {
       x: 86px;
       y: 4px;
       width: 82px;
@@ -174,7 +174,7 @@ owned_mod_row:color {
         text: "Disabled";
       }
     }
-    #owned_status_slot:color {
+    #bmm_row_status_slot:color {
       x: 184px;
       y: 4px;
       width: 30px;
@@ -183,29 +183,29 @@ owned_mod_row:color {
       ignore_event: true;
       stroke: 1;
       back_color: #171822ff;
-      #owned_status_restart:image {
+      #bmm_row_status_restart:image {
         x: 3px;
         y: 3px;
-        width: 22px;
-        height: 22px;
+        width: 24px;
+        height: 24px;
         visible: false;
         ignore_event: true;
         source: "asset/mod_menu/ui/icons/status-restart";
       }
-      #owned_status_update:image {
+      #bmm_row_status_update:image {
         x: 3px;
         y: 3px;
-        width: 22px;
-        height: 22px;
+        width: 24px;
+        height: 24px;
         visible: false;
         ignore_event: true;
         source: "asset/mod_menu/ui/icons/status-update";
       }
-      #owned_status_warning:image {
+      #bmm_row_status_warning:image {
         x: 3px;
         y: 3px;
-        width: 22px;
-        height: 22px;
+        width: 24px;
+        height: 24px;
         visible: false;
         ignore_event: true;
         source: "asset/mod_menu/ui/icons/status-warning";

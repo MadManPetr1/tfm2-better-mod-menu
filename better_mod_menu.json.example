@@ -1,0 +1,31 @@
+{
+  "$schema": "https://raw.githubusercontent.com/MadManPetr1/tfm2-better-mod-menu/main/better_mod_menu.schema.json",
+  "schema_version": 1,
+  "mod_id": "my_mod",
+  "name": "My Mod",
+  "storage": "game_data",
+  "settings_file": "settings.json",
+  "actions_file": "better_mod_menu.actions.json",
+  "summary": "A short description shown in the Settings tab.",
+  "controls": [
+    {
+      "type": "toggle",
+      "key": "enabled",
+      "label": "Enable feature",
+      "category": "General",
+      "description": "Turns the feature on or off.",
+      "default": true
+    },
+    {
+      "type": "choice",
+      "key": "mode",
+      "label": "Mode",
+      "category": "General",
+      "description": "Choose how the feature behaves.",
+      "options": [
+        { "label": "Safe", "value": "safe" },
+        { "label": "Fast", "value": "fast" }
+      ]
+    }
+  ]
+}

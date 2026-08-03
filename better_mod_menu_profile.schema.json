@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/MadManPetr1/tfm2-better-mod-menu/main/better_mod_menu_profile.schema.json",
+  "title": "Better Mod Menu author profile",
+  "description": "Optional profile card shown when a user hovers or clicks the mod author.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schema_version": { "const": 1 },
+    "display_name": {
+      "type": "string",
+      "maxLength": 80,
+      "description": "Display name in the card. Omit it to use the author from mod.mod_info."
+    },
+    "profile_icon": {
+      "enum": ["profile_icon.png", "profile_icon.jpg"],
+      "description": "Optional local image in the mod root, displayed at 32 by 32 pixels."
+    },
+    "bio": {
+      "type": "string",
+      "maxLength": 240,
+      "description": "A short plain-text introduction."
+    },
+    "links": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "github": {
+          "type": "string",
+          "pattern": "^(?:[A-Za-z0-9]|[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?)$",
+          "not": { "pattern": "--" },
+          "description": "GitHub username only, not a URL."
+        },
+        "youtube": {
+          "type": "string",
+          "pattern": "^@?[A-Za-z0-9_.-]{3,30}$",
+          "description": "YouTube handle, with or without the leading @."
+        },
+        "discord": {
+          "type": "string",
+          "pattern": "^[a-z0-9_](?:[a-z0-9_.]{0,30}[a-z0-9_])?$",
+          "not": { "pattern": "\\.\\." },
+          "description": "Modern Discord username copied to the clipboard when clicked."
+        }
+      }
+    }
+  }
+}

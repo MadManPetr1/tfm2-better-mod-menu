@@ -5,11 +5,22 @@ A copy of that license is included at `third_party/licenses/Apache-2.0.txt`.
 
 ## Material Design Icons
 
-- Asset: `third_party/icon_sources/mdi--restart.svg`
-- Icon: `restart`
-- Creator: Google
+- Assets:
+  - `third_party/icon_sources/mdi--restart.svg` (`restart`)
+  - `third_party/icon_sources/mdi--github.svg` (`github`)
+  - `third_party/icon_sources/mdi--youtube.svg` (`youtube`)
+- Creator: Pictogrammers
 - Distributor: Pictogrammers, Material Design Icons
-- Source: https://pictogrammers.com/library/mdi/icon/restart/
+- Source: https://github.com/Templarian/MaterialDesign
+- License: Apache-2.0
+
+## Material Design Authors
+
+- Assets:
+  - `third_party/icon_sources/ic--sharp-person-outline.svg` (`sharp-person-outline`)
+  - `third_party/icon_sources/ic--baseline-discord.svg` (`baseline-discord`)
+- Creator: Material Design Authors
+- Source: https://github.com/google/material-design-icons
 - License: Apache-2.0
 
 ## Google Material Symbols

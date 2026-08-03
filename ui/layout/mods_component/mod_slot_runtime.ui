@@ -1,6 +1,6 @@
 slot_runtime:color_icon_button {
   @"asset/base/style/main#tertiary_button";
-  width: 758px;
+  width: 734px;
   height: 52px;
   btn: {
     color: #00000000;
@@ -24,7 +24,7 @@ slot_runtime:color_icon_button {
   #name:label {
     @"asset/base/style/main#label";
     x: 12px;
-    width: 268px;
+    width: 244px;
     height: 52px;
     size: 15;
     align_x: Left;
@@ -33,7 +33,7 @@ slot_runtime:color_icon_button {
   }
   #author:label {
     @"asset/base/style/main#label";
-    x: 292px;
+    x: 268px;
     width: 154px;
     height: 52px;
     size: 14;
@@ -43,7 +43,7 @@ slot_runtime:color_icon_button {
   }
   #workshop_badge:label {
     @"asset/base/style/main#label";
-    x: 446px;
+    x: 422px;
     width: 80px;
     height: 52px;
     size: 12;
@@ -54,7 +54,7 @@ slot_runtime:color_icon_button {
   }
   #code_badge:label {
     @"asset/base/style/main#label";
-    x: 446px;
+    x: 422px;
     width: 80px;
     height: 52px;
     size: 12;
@@ -64,12 +64,12 @@ slot_runtime:color_icon_button {
     visible: false;
   }
   #toggle:empty {
-    x: 532px;
+    x: 508px;
     width: 214px;
     height: 52px;
     #bg:color {
       width: 172px;
-      height: 37px;
+      height: 38px;
       anchor_y: 0.5;
       pivot_y: 0.5;
       padding: {
@@ -90,7 +90,7 @@ slot_runtime:color_icon_button {
       #enabled:color_selectable {
         @"asset/base/style/main#strategy_option";
         width: 82px;
-        height: 29px;
+        height: 30px;
         label: {
           size: 13;
         }
@@ -102,7 +102,7 @@ slot_runtime:color_icon_button {
       #disabled:color_selectable {
         @"asset/base/style/main#strategy_option";
         width: 82px;
-        height: 29px;
+        height: 30px;
         label: {
           size: 13;
         }

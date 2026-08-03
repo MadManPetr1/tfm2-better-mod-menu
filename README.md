@@ -12,7 +12,7 @@ optional manifest bridge for mod-owned settings.
 ## Features
 
 - Search installed mods by name.
-- Filter all, native-code, and Workshop mods.
+- Filter all, Local, and Workshop mods.
 - Navigate and toggle mods with mouse or keyboard.
 - Inspect richer metadata, dependency health, thumbnails, and banners.
 - Render optional manifest-driven toggles, choices, actions, and file cards.
@@ -56,11 +56,21 @@ Enable **Better Mod Menu** in the native Mods menu and restart the game.
 Mods work normally without a Better Mod Menu manifest. Authors who want rich
 settings can place `better_mod_menu.json` beside `mod.mod_info`.
 
+Authors may also add an optional `better_mod_menu_profile.json` for a short
+hover profile with validated GitHub and YouTube links plus a Discord contact.
+An optional local profile icon is supported. Invalid or missing profiles are
+ignored and never affect normal mod loading.
+
+These are the only two Better Mod Menu integration JSON files a mod may need.
+Their `$schema` values use the public GitHub schemas, so schema files do not
+need to be copied into each mod.
+
 See:
 
 - [Manifest reference](MANIFEST.md)
 - [Modder guide](MODDER_GUIDE.md)
-- [JSON schema](better_mod_menu.schema.json)
+- [Settings example](better_mod_menu.json.example) and [schema](better_mod_menu.schema.json)
+- [Profile example](better_mod_menu_profile.json.example) and [schema](better_mod_menu_profile.schema.json)
 
 ## Building from source
 

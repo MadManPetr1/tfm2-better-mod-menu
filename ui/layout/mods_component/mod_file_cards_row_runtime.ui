@@ -1,15 +1,15 @@
-mod_file_cards_row:color {
-  width: 660px;
+bmm_file_cards_row:color {
+  width: 694px;
   height: 118px;
   ignore_event: true;
   stroke: 1;
   back_color: #1d1f2cff;
 
-  #setting_label:label {
+  #bmm_setting_label:label {
     @"asset/base/style/main#bold_label";
     x: 14px;
     y: 8px;
-    width: 632px;
+    width: 666px;
     height: 22px;
     size: 14;
     align_x: Left;
@@ -17,11 +17,11 @@ mod_file_cards_row:color {
     text: "Backups";
   }
 
-  #setting_description:label {
+  #bmm_setting_description:label {
     @"asset/base/style/main#label";
     x: 14px;
     y: 31px;
-    width: 632px;
+    width: 666px;
     height: 20px;
     size: 12;
     align_x: Left;
@@ -29,11 +29,11 @@ mod_file_cards_row:color {
     text: "Select a verified backup to import.";
   }
 
-  #setting_file_empty:label {
+  #bmm_setting_file_empty:label {
     @"asset/base/style/main#label";
     x: 14px;
     y: 60px;
-    width: 632px;
+    width: 666px;
     height: 40px;
     size: 12;
     align_x: Center;
@@ -41,7 +41,7 @@ mod_file_cards_row:color {
     text: "No verified backups yet";
   }
 
-  #setting_file_card_0:color {
+  #bmm_setting_file_card_0:color {
     x: 14px;
     y: 60px;
     width: 120px;
@@ -50,7 +50,7 @@ mod_file_cards_row:color {
     ignore_event: true;
     stroke: 1;
     back_color: #252735ff;
-    #setting_file_card_label_0:label {
+    #bmm_setting_file_card_label_0:label {
       @"asset/base/style/main#bold_label";
       width: 120px;
       height: 44px;
@@ -70,7 +70,7 @@ mod_file_cards_row:color {
       active: { color: #00000000; }
     }
   }
-  #setting_file_card_1:color {
+  #bmm_setting_file_card_1:color {
     x: 142px;
     y: 60px;
     width: 120px;
@@ -79,7 +79,7 @@ mod_file_cards_row:color {
     ignore_event: true;
     stroke: 1;
     back_color: #252735ff;
-    #setting_file_card_label_1:label {
+    #bmm_setting_file_card_label_1:label {
       @"asset/base/style/main#bold_label";
       width: 120px;
       height: 44px;
@@ -99,7 +99,7 @@ mod_file_cards_row:color {
       active: { color: #00000000; }
     }
   }
-  #setting_file_card_2:color {
+  #bmm_setting_file_card_2:color {
     x: 270px;
     y: 60px;
     width: 120px;
@@ -108,7 +108,7 @@ mod_file_cards_row:color {
     ignore_event: true;
     stroke: 1;
     back_color: #252735ff;
-    #setting_file_card_label_2:label {
+    #bmm_setting_file_card_label_2:label {
       @"asset/base/style/main#bold_label";
       width: 120px;
       height: 44px;
@@ -128,7 +128,7 @@ mod_file_cards_row:color {
       active: { color: #00000000; }
     }
   }
-  #setting_file_card_3:color {
+  #bmm_setting_file_card_3:color {
     x: 398px;
     y: 60px;
     width: 120px;
@@ -137,7 +137,7 @@ mod_file_cards_row:color {
     ignore_event: true;
     stroke: 1;
     back_color: #252735ff;
-    #setting_file_card_label_3:label {
+    #bmm_setting_file_card_label_3:label {
       @"asset/base/style/main#bold_label";
       width: 120px;
       height: 44px;
@@ -157,7 +157,7 @@ mod_file_cards_row:color {
       active: { color: #00000000; }
     }
   }
-  #setting_file_card_4:color {
+  #bmm_setting_file_card_4:color {
     x: 526px;
     y: 60px;
     width: 120px;
@@ -166,7 +166,7 @@ mod_file_cards_row:color {
     ignore_event: true;
     stroke: 1;
     back_color: #252735ff;
-    #setting_file_card_label_4:label {
+    #bmm_setting_file_card_label_4:label {
       @"asset/base/style/main#bold_label";
       width: 120px;
       height: 44px;

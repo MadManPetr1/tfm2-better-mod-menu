@@ -3,9 +3,11 @@
 Place `better_mod_menu.json` beside `mod.mod_info`. The manifest is optional:
 
 - Without it, Better Mod Menu shows the metadata supplied by `mod.mod_info`.
-- With it, declared `display` fields replace the corresponding game metadata.
+- With it, declared title, author, version, and summary fields replace the
+  corresponding game metadata.
 - Omitted `display` fields continue to use `mod.mod_info`; values are never duplicated.
-- A root `thumbnail.png` replaces the fallback cog.
+- Source and dependencies always use the installed source and `mod.mod_info`.
+- A root `thumbnail.png` replaces the fallback cog; `assets/thumbnail-master.png` keeps the original 128×128 pixel art.
 - A root `banner.png` is shown above the Overview text. `assets/banner.png` is also accepted.
 
 Use `schema_version: 1`, the same `mod_id` and display `name` as the mod, and at most seven controls.
@@ -15,7 +17,7 @@ section heading. Categories are displayed in manifest order.
 
 ```json
 {
-  "$schema": "./better_mod_menu.schema.json",
+  "$schema": "https://raw.githubusercontent.com/MadManPetr1/tfm2-better-mod-menu/main/better_mod_menu.schema.json",
   "schema_version": 1,
   "mod_id": "example_mod",
   "name": "Example Mod",

@@ -1,6 +1,20 @@
 /target/
+*.ui.bak
 /builds/
 /mod_menu.dll
 /mod.workshop_id
 *.dll.lib
 *.pdb
+*.lib
+*.exp
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Local-only UI development tooling. Never publish or package it.
+/better_mod_menu.dev.json
+/better_mod_menu.dev.json.example
+/src/dev_inspector.rs
+/src/ui_source.rs
+/ui/layout/dev/

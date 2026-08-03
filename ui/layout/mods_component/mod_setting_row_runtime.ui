@@ -1,15 +1,15 @@
-mod_setting_row:color {
-  width: 660px;
+bmm_setting_row:color {
+  width: 694px;
   height: 66px;
   ignore_event: true;
   stroke: 1;
   back_color: #1d1f2cff;
 
-  #setting_label:label {
+  #bmm_setting_label:label {
     @"asset/base/style/main#bold_label";
     x: 14px;
     y: 8px;
-    width: 390px;
+    width: 424px;
     height: 22px;
     size: 14;
     align_x: Left;
@@ -17,11 +17,11 @@ mod_setting_row:color {
     text: "Setting";
   }
 
-  #setting_description:label {
+  #bmm_setting_description:label {
     @"asset/base/style/main#label";
     x: 14px;
     y: 31px;
-    width: 360px;
+    width: 394px;
     height: 25px;
     size: 12;
     align_x: Left;
@@ -29,8 +29,8 @@ mod_setting_row:color {
     text: "";
   }
 
-  #setting_status_badge:color {
-    x: 392px;
+  #bmm_setting_status_badge:color {
+    x: 426px;
     y: 21px;
     width: 72px;
     height: 24px;
@@ -39,7 +39,7 @@ mod_setting_row:color {
     stroke: 1;
     back_color: #145648ff;
 
-    #setting_status_text:label {
+    #bmm_setting_status_text:label {
       @"asset/base/style/main#bold_label";
       width: 72px;
       height: 24px;
@@ -50,8 +50,8 @@ mod_setting_row:color {
     }
   }
 
-  #setting_toggle:color {
-    x: 472px;
+  #bmm_setting_toggle:color {
+    x: 506px;
     y: 15px;
     width: 174px;
     height: 36px;
@@ -60,7 +60,7 @@ mod_setting_row:color {
     stroke: 1;
     back_color: #171822ff;
 
-    #setting_toggle_off:color {
+    #bmm_setting_toggle_off:color {
       x: 88px;
       y: 4px;
       width: 82px;
@@ -79,7 +79,7 @@ mod_setting_row:color {
       }
     }
 
-    #setting_toggle_on:color {
+    #bmm_setting_toggle_on:color {
       x: 4px;
       y: 4px;
       width: 82px;
@@ -108,8 +108,8 @@ mod_setting_row:color {
     }
   }
 
-  #setting_choice:color {
-    x: 410px;
+  #bmm_setting_choice:color {
+    x: 444px;
     y: 15px;
     width: 236px;
     height: 36px;
@@ -118,7 +118,7 @@ mod_setting_row:color {
     stroke: 1;
     back_color: #171822ff;
 
-    #setting_choice_previous:color {
+    #bmm_setting_choice_previous:color {
       x: 4px;
       y: 4px;
       width: 32px;
@@ -146,7 +146,7 @@ mod_setting_row:color {
       }
     }
 
-    #setting_choice_value:label {
+    #bmm_setting_choice_value:label {
       @"asset/base/style/main#bold_label";
       x: 40px;
       y: 4px;
@@ -158,7 +158,7 @@ mod_setting_row:color {
       text: "-";
     }
 
-    #setting_choice_next:color {
+    #bmm_setting_choice_next:color {
       x: 200px;
       y: 4px;
       width: 32px;
@@ -187,8 +187,8 @@ mod_setting_row:color {
     }
   }
 
-  #setting_button:color {
-    x: 472px;
+  #bmm_setting_button:color {
+    x: 506px;
     y: 15px;
     width: 174px;
     height: 36px;
@@ -197,7 +197,7 @@ mod_setting_row:color {
     stroke: 1;
     back_color: #252735ff;
 
-    #setting_button_label:label {
+    #bmm_setting_button_label:label {
       @"asset/base/style/main#bold_label";
       width: 174px;
       height: 36px;
