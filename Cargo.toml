@@ -1,6 +1,6 @@
 [package]
-name = "mod_menu"
-version = "0.6.0"
+name = "tfm2_better_mod_menu"
+version = "0.7.0"
 edition = "2021"
 authors = ["MadManPetr1"]
 description = "Focused usability improvements for the Teamfight Manager 2 mod manager"

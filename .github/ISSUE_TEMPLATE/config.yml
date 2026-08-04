@@ -3,6 +3,3 @@ contact_links:
   - name: Modder guide
     url: https://github.com/MadManPetr1/tfm2-better-mod-menu/blob/main/MODDER_GUIDE.md
     about: Start here for manifests, author profiles, artwork, and integration safety.
-  - name: Private security report
-    url: https://github.com/MadManPetr1/tfm2-better-mod-menu/security/advisories/new
-    about: Report security, path-validation, or privacy vulnerabilities privately.

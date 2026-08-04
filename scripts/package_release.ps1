@@ -18,16 +18,16 @@ if (-not $SkipBuild) {
     }
 }
 
-$dll = Join-Path $root "mod_menu.dll"
+$dll = Join-Path $root "tfm2_better_mod_menu.dll"
 if (-not (Test-Path -LiteralPath $dll -PathType Leaf)) {
-    throw "mod_menu.dll is missing."
+    throw "tfm2_better_mod_menu.dll is missing."
 }
 
 $modInfo = Get-Content -LiteralPath (Join-Path $root "mod.mod_info") -Raw | ConvertFrom-Json
 $buildRoot = Join-Path $root "builds"
-$releaseRoot = Join-Path $buildRoot "better-mod-menu-v$($modInfo.version)"
-$runtimeRoot = Join-Path $releaseRoot "mod_menu"
-$archive = Join-Path $buildRoot "better-mod-menu-v$($modInfo.version).zip"
+$releaseRoot = Join-Path $buildRoot "tfm2-better-mod-menu-v$($modInfo.version)"
+$runtimeRoot = Join-Path $releaseRoot $modInfo.mod_id
+$archive = Join-Path $buildRoot "tfm2-better-mod-menu-v$($modInfo.version).zip"
 
 if (Test-Path -LiteralPath $releaseRoot) {
     Remove-Item -LiteralPath $releaseRoot -Recurse -Force
@@ -39,7 +39,7 @@ if (Test-Path -LiteralPath $archive) {
 New-Item -ItemType Directory -Path $runtimeRoot -Force | Out-Null
 
 foreach ($name in @(
-    "mod_menu.dll",
+    "tfm2_better_mod_menu.dll",
     "mod.mod_info",
     "mod.override_info",
     "better_mod_menu_profile.json",
@@ -62,11 +62,14 @@ foreach ($name in @(
     "better_mod_menu_profile.schema.json",
     "README.md",
     "CHANGELOG.md",
-    "MANIFEST.md",
     "MODDER_GUIDE.md"
 )) {
     Copy-Item -LiteralPath (Join-Path $root $name) -Destination (Join-Path $docsRoot $name)
 }
+$docsPreviews = Join-Path $docsRoot "assets\previews"
+New-Item -ItemType Directory -Path $docsPreviews -Force | Out-Null
+Get-ChildItem -LiteralPath (Join-Path $root "assets/previews") -File |
+    Copy-Item -Destination $docsPreviews
 
 $runtimeUi = Join-Path $runtimeRoot "ui"
 $runtimeLayouts = Join-Path $runtimeUi "layout"

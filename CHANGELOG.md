@@ -4,6 +4,38 @@ All notable public changes to Better Mod Menu are documented here.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-08-04
+
+### Added
+
+- Compact Enable All and Disable All actions using the game's native mod-toggle
+  event path; Disable All always keeps Better Mod Menu enabled.
+- Contained ten-row mod list with mouse-wheel scrolling, synchronized keyboard
+  navigation, and automatic selected-row visibility.
+
+### Changed
+
+- Aligned the public runtime identity with the unified TFM2 mod template:
+  `tfm2_better_mod_menu` for the mod ID, installed folder, crate, and DLL.
+- Renamed release archives to the repository-aligned
+  `tfm2-better-mod-menu-v<version>.zip` format.
+- Consolidated manifest documentation into one modder guide and moved README
+  screenshots under `assets/previews`.
+- Replaced the README gallery with current Overview, Settings, Restart and
+  Apply, and author-profile captures prepared for Steam's preview limit.
+- Clarified that JSON-only Better Mod Menu integration does not impose GPL
+  licensing or source-publication requirements on another mod.
+- Refined mod-row interaction regions so hover, pointer feedback, and clicks
+  track the visible controls more closely.
+
+### Fixed
+
+- Prevented long mod lists from extending behind the fixed footer and details
+  panel.
+- Prevented bulk actions from dropping back to the title screen partway through
+  larger installed-mod sets.
+- Kept keyboard navigation to one row per input without multi-row jumps.
+
 ## [0.6.0] - 2026-08-03
 
 ### Added
@@ -59,6 +91,7 @@ All notable public changes to Better Mod Menu are documented here.
 
 - Built and runtime-tested for Teamfight Manager 2 `0.5.3`.
 
-[Unreleased]: https://github.com/MadManPetr1/tfm2-better-mod-menu/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/MadManPetr1/tfm2-better-mod-menu/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/MadManPetr1/tfm2-better-mod-menu/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/MadManPetr1/tfm2-better-mod-menu/compare/v0.5.3...v0.6.0
 [0.5.3]: https://github.com/MadManPetr1/tfm2-better-mod-menu/tree/v0.5.3

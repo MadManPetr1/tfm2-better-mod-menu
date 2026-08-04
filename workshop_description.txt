@@ -1,0 +1,57 @@
+[h1]Better Mod Menu[/h1]
+
+[b]A clearer, faster mod manager for Teamfight Manager 2.[/b]
+
+Search, inspect, configure, and troubleshoot installed mods through a dedicated interface while preserving the game's native mod system.
+
+[h2]Features[/h2]
+
+[list]
+[*] Search installed mods by name or author.
+[*] Filter All, Local, and Workshop mods.
+[*] Scroll long mod lists with the mouse wheel or keyboard.
+[*] Enable or disable individual mods or apply a bulk action.
+[*] Review dependency, version, update, and restart warnings.
+[*] View thumbnails, banners, summaries, settings, and author profiles.
+[*] Use optional manifest-driven settings and actions provided by compatible mods.
+[/list]
+
+Mods do not need Better Mod Menu integration to appear or remain manageable.
+
+[h2]Compatibility[/h2]
+
+[b]Tested with:[/b] TFM2 0.5.3
+
+Compatibility with later versions is not guaranteed until confirmed.
+
+[h2]Setup[/h2]
+
+[list]
+[*] Subscribe to and enable Better Mod Menu.
+[*] Restart the game when prompted.
+[*] Open Mods from the title screen.
+[/list]
+
+Enabling, disabling, or updating native mods may still require a restart.
+
+[h2]For mod authors[/h2]
+
+Optional integration uses at most two files:
+
+[code]better_mod_menu.json
+better_mod_menu_profile.json[/code]
+
+Schemas, examples, and the modder guide are available in the GitHub repository.
+
+[h2]Source code[/h2]
+
+This mod contains native code:
+
+[code]tfm2_better_mod_menu.dll[/code]
+
+[url=https://github.com/MadManPetr1/tfm2-better-mod-menu]Source code on GitHub[/url]
+
+[b]Current version:[/b] v0.7.0
+[b]Last tested:[/b] 08/04/2026
+
+When reporting a problem, include your game version, Better Mod Menu version, enabled mods, relevant logs, and any related integration JSON.

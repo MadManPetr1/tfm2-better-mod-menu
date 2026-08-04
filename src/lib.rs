@@ -1,27 +1,38 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE-EXCEPTION.md for the TFM2 linking exception and attribution terms.
 
+use ::common::property_parsable::{PropertyParsable, Style};
+use ::common::{rect::Rect as UiRect, FocusState};
 use ::engine_core::ui::parser::parse_node_template;
+use ::engine_core::{
+    platform::Platform, renderer::Renderer, ui::layout::Layout, ui::length::Length,
+};
 use mod_api::*;
 use serde::Deserialize;
 use serde_json::{Map as JsonMap, Value as JsonValue};
+use std::any::Any;
+use std::collections::HashMap;
 use std::fs;
 use std::path::{Component, Path, PathBuf};
+use std::rc::Rc;
 use std::sync::{
-    atomic::{AtomicBool, AtomicUsize, Ordering},
+    atomic::{AtomicBool, AtomicI32, AtomicUsize, Ordering},
     Mutex,
 };
 
-const MOD_ID: &str = "mod_menu";
+const MOD_ID: &str = "tfm2_better_mod_menu";
 const NO_SELECTION: &str = "-";
-const RUNTIME_LAYOUT_ASSET: &str = "asset/mod_menu/ui/layout/better_mod_menu_runtime";
-const RUNTIME_SLOT_ASSET: &str = "asset/mod_menu/ui/layout/mods_component/mod_slot_runtime";
-const MOD_ROW_TEMPLATE_ASSET: &str = "asset/mod_menu/ui/layout/mods_component/bmm_mod_row_runtime";
-const SETTING_ROW_ASSET: &str = "asset/mod_menu/ui/layout/mods_component/mod_setting_row_runtime";
+const RUNTIME_LAYOUT_ASSET: &str = "asset/tfm2_better_mod_menu/ui/layout/better_mod_menu_runtime";
+const RUNTIME_SLOT_ASSET: &str =
+    "asset/tfm2_better_mod_menu/ui/layout/mods_component/mod_slot_runtime";
+const MOD_ROW_TEMPLATE_ASSET: &str =
+    "asset/tfm2_better_mod_menu/ui/layout/mods_component/bmm_mod_row_runtime";
+const SETTING_ROW_ASSET: &str =
+    "asset/tfm2_better_mod_menu/ui/layout/mods_component/mod_setting_row_runtime";
 const SETTING_FILE_CARDS_ASSET: &str =
-    "asset/mod_menu/ui/layout/mods_component/mod_file_cards_row_runtime";
+    "asset/tfm2_better_mod_menu/ui/layout/mods_component/mod_file_cards_row_runtime";
 const SETTING_CATEGORY_ASSET: &str =
-    "asset/mod_menu/ui/layout/mods_component/mod_setting_category_runtime";
+    "asset/tfm2_better_mod_menu/ui/layout/mods_component/mod_setting_category_runtime";
 const SETTINGS_MANIFEST_FILE: &str = "better_mod_menu.json";
 const MODDER_PROFILE_FILE: &str = "better_mod_menu_profile.json";
 const GAME_VERSION: &str = "0.5.3";
@@ -49,6 +60,96 @@ const KEY_MASK_END: usize = 1 << 3;
 const KEY_MASK_ENABLE: usize = 1 << 4;
 const KEY_MASK_DISABLE: usize = 1 << 5;
 const KEY_MASK_ESCAPE: usize = 1 << 6;
+const NO_NAVIGATION_TARGET: usize = usize::MAX;
+const MOD_ROW_HEIGHT: f32 = 52.0;
+const MOD_ROW_SPACING: f32 = 8.0;
+const NAVIGATION_LAYOUT_FRAMES: usize = 2;
+
+static MOD_LIST_WHEEL_STEPS: AtomicI32 = AtomicI32::new(0);
+static NATIVE_BULK_TOGGLE_COMMAND: Mutex<Option<NativeBulkToggleCommand>> = Mutex::new(None);
+static NATIVE_BULK_TOGGLE_STATUS: AtomicI32 = AtomicI32::new(0);
+
+#[derive(Clone, Copy, Debug)]
+struct NativeBulkToggleCommand {
+    index: usize,
+    target_enabled: bool,
+}
+
+#[derive(Clone, Debug, Default)]
+struct BetterModListRunner {
+    dirty: bool,
+}
+
+impl PropertyParsable for BetterModListRunner {
+    fn build_with_property(&mut self, _property: &HashMap<String, Rc<dyn Any>>) {}
+}
+
+impl NodeRunner for BetterModListRunner {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
+
+    fn set_dirty(&mut self, dirty: bool) {
+        self.dirty = dirty;
+    }
+
+    fn dirty(&self) -> bool {
+        self.dirty
+    }
+
+    fn update(
+        &mut self,
+        assets: &Assets,
+        _renderer: &dyn Renderer,
+        platform: &dyn Platform,
+        path: &str,
+        _layout: &mut Style<Layout>,
+        focus: FocusState,
+        _rect: &UiRect,
+        _contents_rect: &UiRect,
+        child: &mut Vec<Node>,
+        _dt: f32,
+    ) -> Vec<UIEvent> {
+        let command = NATIVE_BULK_TOGGLE_COMMAND
+            .lock()
+            .ok()
+            .and_then(|mut command| command.take());
+        let Some(command) = command else {
+            return Vec::new();
+        };
+
+        let events = invoke_native_mod_toggle(assets, platform, path, focus, child, command);
+        NATIVE_BULK_TOGGLE_STATUS.store(if events.is_some() { 2 } else { -1 }, Ordering::Release);
+        events.unwrap_or_default()
+    }
+
+    fn on_cursor_scroll(
+        &mut self,
+        _platform: &dyn Platform,
+        _path: &str,
+        _layout: &mut Style<Layout>,
+        _focus: FocusState,
+        _contents_rect: &UiRect,
+        _child: &mut Vec<Node>,
+        scroll: f32,
+    ) -> Vec<UIEvent> {
+        let step = if scroll > 0.0 {
+            -1
+        } else if scroll < 0.0 {
+            1
+        } else {
+            0
+        };
+        if step != 0 {
+            MOD_LIST_WHEEL_STEPS.fetch_add(step, Ordering::AcqRel);
+        }
+        Vec::new()
+    }
+}
 
 // --- Runtime view state ----------------------------------------------------
 
@@ -108,7 +209,7 @@ struct ModRowViewData {
     toggle: ToggleVisual,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 enum BulkAction {
     EnableAll,
     DisableAll,
@@ -117,8 +218,8 @@ enum BulkAction {
 struct BulkToggleOperation {
     target_enabled: bool,
     remaining: Vec<usize>,
-    cooldown_frames: usize,
-    pending_release: Option<(usize, String, f32, f32)>,
+    pending: Option<(usize, String)>,
+    pending_frames: usize,
 }
 
 // --- Modder manifest model -------------------------------------------------
@@ -328,6 +429,9 @@ fn default_file_card_limit() -> usize {
 struct BetterModMenuExtension {
     popup_open: AtomicBool,
     pending_selection: AtomicUsize,
+    navigation_target: AtomicUsize,
+    navigation_delay: AtomicUsize,
+    scroll_start: AtomicUsize,
     selected_index: AtomicUsize,
     key_state: AtomicUsize,
     text_key_state: AtomicUsize,
@@ -335,6 +439,7 @@ struct BetterModMenuExtension {
     escape_down: AtomicBool,
     restarting: AtomicBool,
     mouse_down: AtomicBool,
+    mouse_toggle_restore_frames: AtomicUsize,
     toggle_reselect_pending: AtomicBool,
     profile_pinned: AtomicBool,
     profile_hover_frames: AtomicUsize,
@@ -366,6 +471,16 @@ impl ModExtension for BetterModMenuExtension {
             self.shortcut_down.store(false, Ordering::Release);
             self.escape_down.store(false, Ordering::Release);
             self.pending_selection.store(0, Ordering::Release);
+            self.navigation_target
+                .store(NO_NAVIGATION_TARGET, Ordering::Release);
+            self.navigation_delay.store(0, Ordering::Release);
+            self.scroll_start.store(0, Ordering::Release);
+            MOD_LIST_WHEEL_STEPS.store(0, Ordering::Release);
+            NATIVE_BULK_TOGGLE_STATUS.store(0, Ordering::Release);
+            if let Ok(mut command) = NATIVE_BULK_TOGGLE_COMMAND.lock() {
+                *command = None;
+            }
+            self.mouse_toggle_restore_frames.store(0, Ordering::Release);
             self.toggle_reselect_pending.store(false, Ordering::Release);
             self.profile_pinned.store(false, Ordering::Release);
             self.profile_hover_frames.store(0, Ordering::Release);
@@ -387,6 +502,7 @@ impl ModExtension for BetterModMenuExtension {
         if !ensure_runtime_ui(&mut ui.root, assets) {
             return;
         }
+        self.sync_mouse_toggle_hitboxes(&mut ui.root);
         let installed = mod_row_count(&ui.root);
         if installed == 0 {
             return;
@@ -413,10 +529,10 @@ impl ModExtension for BetterModMenuExtension {
 
         if self.pending_selection.load(Ordering::Acquire) == 0
             && !self.toggle_reselect_pending.load(Ordering::Acquire)
+            && self.navigation_target.load(Ordering::Acquire) == NO_NAVIGATION_TARGET
         {
             self.remember_current_selection(&ui.root, assets);
         }
-        self.process_bulk_toggle(ui, assets);
         self.handle_pointer_input(ui, assets);
         self.handle_search_input(ui);
         self.handle_escape(ui);
@@ -439,14 +555,17 @@ impl ModExtension for BetterModMenuExtension {
             || hovered_profile_control;
         self.filter_hovered
             .store(hovered_clickable, Ordering::Release);
-
         let query = self
             .query
             .lock()
             .map(|value| value.clone())
             .unwrap_or_default();
         let filter = ModSourceFilter::from_raw(self.filter.load(Ordering::Acquire));
-        let visible = apply_mod_filter(&mut ui.root, assets, &query, filter);
+        let visible_indices = apply_mod_filter(&mut ui.root, assets, &query, filter);
+        let row_capacity = mod_list_row_capacity(&ui.root);
+        let scroll_start = self.update_scroll_start(visible_indices.len(), row_capacity);
+        apply_mod_viewport(&mut ui.root, &visible_indices, scroll_start, row_capacity);
+        let visible = visible_indices.len();
         let selection_hint = self
             .selected_name
             .lock()
@@ -497,6 +616,13 @@ impl ModExtension for BetterModMenuExtension {
                 pending_restart,
             },
         );
+        align_visible_mod_row_views(&mut ui.root);
+        sync_mod_list_scrollbar(
+            &mut ui.root,
+            scroll_start,
+            visible_indices.len(),
+            row_capacity,
+        );
         if selected_mod_name(&ui.root, assets).is_some_and(|name| name != NO_SELECTION) {
             sync_selected_preview(&mut ui.root, assets);
         }
@@ -522,7 +648,8 @@ impl ModExtension for BetterModMenuExtension {
         });
         sync_runtime_tooltip(&mut ui.root, tooltip.as_deref());
 
-        let visible_indices = mod_visible_indices(&ui.root);
+        self.process_bulk_toggle(ui, assets);
+
         if visible_indices.is_empty() {
             return;
         }
@@ -546,16 +673,66 @@ impl ModExtension for BetterModMenuExtension {
                     .and_then(|name| mod_row_index_by_name(&ui.root, assets, &name))
                     .filter(|index| visible_indices.contains(index))
                     .unwrap_or(visible_indices[0]);
-                self.select_row(ui, preferred, installed);
+                self.select_row(ui, preferred, installed, &visible_indices);
             }
             return;
         }
 
+        if self.continue_navigation(ui, installed, &visible_indices) {
+            return;
+        }
         self.handle_navigation(ui, installed, &visible_indices);
     }
 }
 
 impl BetterModMenuExtension {
+    fn sync_mouse_toggle_hitboxes(&self, root: &mut Node) {
+        let frames = self.mouse_toggle_restore_frames.load(Ordering::Acquire);
+        let enabled = frames == 0;
+        set_mod_toggle_hitboxes_visible(root, enabled);
+        if frames > 0 {
+            self.mouse_toggle_restore_frames
+                .store(frames - 1, Ordering::Release);
+        }
+    }
+
+    fn update_scroll_start(&self, total: usize, capacity: usize) -> usize {
+        let max_start = total.saturating_sub(capacity.max(1));
+        let wheel_steps = MOD_LIST_WHEEL_STEPS.swap(0, Ordering::AcqRel);
+        let current = self.scroll_start.load(Ordering::Acquire).min(max_start);
+        let next = if wheel_steps < 0 {
+            current.saturating_sub(wheel_steps.unsigned_abs() as usize)
+        } else {
+            current.saturating_add(wheel_steps as usize).min(max_start)
+        };
+        self.scroll_start.store(next, Ordering::Release);
+        next
+    }
+
+    fn ensure_row_visible(&self, index: usize, visible_indices: &[usize], capacity: usize) -> bool {
+        let Some(position) = visible_indices
+            .iter()
+            .position(|candidate| *candidate == index)
+        else {
+            return false;
+        };
+        let capacity = capacity.max(1);
+        let current = self.scroll_start.load(Ordering::Acquire);
+        let next = if position < current {
+            position
+        } else if position >= current.saturating_add(capacity) {
+            position + 1 - capacity
+        } else {
+            current
+        }
+        .min(visible_indices.len().saturating_sub(capacity));
+        if next == current {
+            return false;
+        }
+        self.scroll_start.store(next, Ordering::Release);
+        true
+    }
+
     fn capture_baseline_mod_states(&self, root: &Node, assets: &Assets) {
         let Ok(mut baseline) = self.baseline_mod_states.lock() else {
             return;
@@ -623,6 +800,9 @@ impl BetterModMenuExtension {
                     query.clear();
                 }
                 self.pending_selection.store(1, Ordering::Release);
+                self.navigation_target
+                    .store(NO_NAVIGATION_TARGET, Ordering::Release);
+                self.scroll_start.store(0, Ordering::Release);
             }
             return;
         }
@@ -640,13 +820,18 @@ impl BetterModMenuExtension {
             return;
         }
 
-        if let Some((index, name)) = mod_row_toggle_at_point(&ui.root, assets, x, y) {
+        if let Some((index, name, control)) = mod_row_toggle_at_point(&ui.root, assets, x, y) {
             self.selected_index.store(index, Ordering::Release);
             if let Ok(mut selected_name) = self.selected_name.lock() {
                 selected_name.clear();
                 selected_name.push_str(&name);
             }
-            self.toggle_reselect_pending.store(true, Ordering::Release);
+            set_mod_toggle_hitboxes_visible(&mut ui.root, false);
+            self.mouse_toggle_restore_frames
+                .store(NAVIGATION_LAYOUT_FRAMES, Ordering::Release);
+            if self.click_row_control(ui, index, control) {
+                self.toggle_reselect_pending.store(true, Ordering::Release);
+            }
             let _ = set_search_editing(&mut ui.root, false);
             self.search_focused.store(false, Ordering::Release);
             self.text_key_state.store(0, Ordering::Release);
@@ -655,12 +840,16 @@ impl BetterModMenuExtension {
 
         if let Some(filter) = filter_at_point(&ui.root, x, y) {
             self.filter.store(filter.as_raw(), Ordering::Release);
+            self.navigation_target
+                .store(NO_NAVIGATION_TARGET, Ordering::Release);
+            self.scroll_start.store(0, Ordering::Release);
             let _ = set_search_editing(&mut ui.root, false);
             self.search_focused.store(false, Ordering::Release);
             self.text_key_state.store(0, Ordering::Release);
             self.pending_selection.store(1, Ordering::Release);
             return;
         }
+
         let _ = set_search_editing(&mut ui.root, false);
         self.search_focused.store(false, Ordering::Release);
         self.text_key_state.store(0, Ordering::Release);
@@ -677,25 +866,37 @@ impl BetterModMenuExtension {
     }
 
     fn start_bulk_toggle(&self, root: &Node, assets: &Assets, action: BulkAction) {
+        if self
+            .bulk_toggle
+            .lock()
+            .is_ok_and(|operation| operation.is_some())
+        {
+            return;
+        }
         let target_enabled = matches!(action, BulkAction::EnableAll);
-        let bmm_name = self
+        let (bmm_name, dependency_warnings) = self
             .settings_catalog
             .lock()
-            .ok()
-            .and_then(|catalog| {
-                catalog
+            .map(|catalog| {
+                let bmm_name = catalog
                     .visuals
                     .iter()
                     .find(|visual| visual.mod_id == MOD_ID)
                     .map(|visual| visual.name.clone())
+                    .unwrap_or_else(|| "Better Mod Menu".to_owned());
+                (bmm_name, catalog.dependency_warnings.clone())
             })
-            .unwrap_or_else(|| "Better Mod Menu".to_owned());
+            .unwrap_or_else(|_| ("Better Mod Menu".to_owned(), Vec::new()));
         let mut remaining: Vec<_> = current_mod_states(root, assets)
             .into_iter()
             .enumerate()
             .filter_map(|(index, (name, enabled))| {
                 if enabled == target_enabled
                     || (!target_enabled && (name == bmm_name || name == "Better Mod Menu"))
+                    || (target_enabled
+                        && dependency_warnings
+                            .iter()
+                            .any(|(warning_name, _)| warning_name == &name))
                 {
                     None
                 } else {
@@ -708,40 +909,57 @@ impl BetterModMenuExtension {
             *bulk = (!remaining.is_empty()).then_some(BulkToggleOperation {
                 target_enabled,
                 remaining,
-                cooldown_frames: 0,
-                pending_release: None,
+                pending: None,
+                pending_frames: 0,
             });
         }
     }
 
-    fn process_bulk_toggle(&self, ui: &GameUI, assets: &Assets) {
+    fn process_bulk_toggle(&self, ui: &mut GameUI, assets: &Assets) {
         let Ok(mut bulk) = self.bulk_toggle.lock() else {
             return;
         };
         let Some(operation) = bulk.as_mut() else {
             return;
         };
-        if operation.cooldown_frames > 0 {
-            operation.cooldown_frames -= 1;
-            return;
-        }
-        if let Some((index, name, x, y)) = operation.pending_release.take() {
-            if post_ui_mouse_button(ui, x, y, false) {
+        if let Some((index, name)) = operation.pending.as_ref() {
+            let enabled = mod_rows(&ui.root)
+                .and_then(|rows| rows.get(*index))
+                .and_then(|row| find_node(row, "enabled"))
+                .and_then(color_selectable_selected)
+                .unwrap_or(false);
+            if enabled == operation.target_enabled {
+                let index = *index;
+                let name = name.clone();
                 if operation.remaining.last() == Some(&index) {
                     operation.remaining.pop();
                 }
-                operation.cooldown_frames = 8;
                 self.selected_index.store(index, Ordering::Release);
                 if let Ok(mut selected_name) = self.selected_name.lock() {
                     selected_name.clear();
                     selected_name.push_str(&name);
                 }
                 self.pending_selection.store(3, Ordering::Release);
+                operation.pending = None;
+                operation.pending_frames = 0;
+                NATIVE_BULK_TOGGLE_STATUS.store(0, Ordering::Release);
+            } else if NATIVE_BULK_TOGGLE_STATUS.load(Ordering::Acquire) < 0 {
+                eprintln!("Better Mod Menu: could not apply bulk toggle for {name}");
+                operation.remaining.pop();
+                operation.pending = None;
+                operation.pending_frames = 0;
+                NATIVE_BULK_TOGGLE_STATUS.store(0, Ordering::Release);
             } else {
-                operation.pending_release = Some((index, name, x, y));
-                operation.cooldown_frames = 1;
+                operation.pending_frames = operation.pending_frames.saturating_add(1);
+                if operation.pending_frames > 300 {
+                    eprintln!("Better Mod Menu: bulk toggle timed out for {name}");
+                    operation.remaining.pop();
+                    operation.pending = None;
+                    operation.pending_frames = 0;
+                    NATIVE_BULK_TOGGLE_STATUS.store(0, Ordering::Release);
+                }
+                return;
             }
-            return;
         }
         while let Some(&index) = operation.remaining.last() {
             let Some(row) = mod_rows(&ui.root).and_then(|rows| rows.get(index)) else {
@@ -768,21 +986,20 @@ impl BetterModMenuExtension {
                 operation.remaining.pop();
                 continue;
             }
-            let control = if operation.target_enabled {
-                "enabled"
-            } else {
-                "disabled"
+            let command = NativeBulkToggleCommand {
+                index,
+                target_enabled: operation.target_enabled,
             };
-            if let Some((x, y)) = mod_row_control_click_point(&ui.root, index, control) {
-                if post_ui_mouse_button(ui, x, y, true) {
-                    operation.pending_release = Some((index, name, x, y));
-                    operation.cooldown_frames = 4;
-                } else {
-                    operation.cooldown_frames = 1;
-                }
-            } else {
-                operation.cooldown_frames = 1;
+            let Ok(mut pending_command) = NATIVE_BULK_TOGGLE_COMMAND.lock() else {
+                break;
+            };
+            if pending_command.is_some() {
+                break;
             }
+            *pending_command = Some(command);
+            NATIVE_BULK_TOGGLE_STATUS.store(1, Ordering::Release);
+            operation.pending = Some((index, name));
+            operation.pending_frames = 0;
             break;
         }
         if operation.remaining.is_empty() {
@@ -889,7 +1106,7 @@ impl BetterModMenuExtension {
         let profile_icon = catalog
             .active_profile_icon
             .as_deref()
-            .unwrap_or("asset/mod_menu/ui/icons/author");
+            .unwrap_or("asset/tfm2_better_mod_menu/ui/icons/author");
         let _ = set_image_source(root, assets, "bmm_profile_icon", profile_icon);
         let discord_text = profile
             .discord_contact
@@ -936,12 +1153,10 @@ impl BetterModMenuExtension {
     fn handle_escape(&self, ui: &mut GameUI) {
         let down = current_key_mask() & KEY_MASK_ESCAPE != 0;
         let was_down = self.escape_down.swap(down, Ordering::AcqRel);
-        if !down || was_down {
+        if down || !was_down {
             return;
         }
-        let close_point = find_node(&ui.root, "bottom_buttons")
-            .and_then(|buttons| buttons.child.iter().rev().find(|child| child.visible))
-            .and_then(node_center);
+        let close_point = find_node(&ui.root, "bmm_close_menu_button").and_then(node_center);
         if !close_point.is_some_and(|(x, y)| post_ui_click(ui, x, y)) {
             let _ = set_node_visible(&mut ui.root, "mods_popup", false);
         }
@@ -971,6 +1186,9 @@ impl BetterModMenuExtension {
         if native_changed {
             query.clear();
             query.push_str(&text);
+            self.navigation_target
+                .store(NO_NAVIGATION_TARGET, Ordering::Release);
+            self.scroll_start.store(0, Ordering::Release);
             self.pending_selection.store(1, Ordering::Release);
         }
 
@@ -1009,11 +1227,14 @@ impl BetterModMenuExtension {
         if changed {
             let value = query.clone();
             let _ = set_search_text(&mut ui.root, &value);
+            self.navigation_target
+                .store(NO_NAVIGATION_TARGET, Ordering::Release);
+            self.scroll_start.store(0, Ordering::Release);
             self.pending_selection.store(1, Ordering::Release);
         }
     }
 
-    fn handle_navigation(&self, ui: &GameUI, installed: usize, visible_indices: &[usize]) {
+    fn handle_navigation(&self, ui: &mut GameUI, installed: usize, visible_indices: &[usize]) {
         let keys = current_key_mask();
         let previous = self.key_state.swap(keys, Ordering::AcqRel);
         let pressed = keys & !previous;
@@ -1042,7 +1263,7 @@ impl BetterModMenuExtension {
         };
 
         if let Some(index) = target {
-            self.select_row(ui, index, installed);
+            self.select_row(ui, index, installed, visible_indices);
         } else if pressed & KEY_MASK_ENABLE != 0 {
             if self.click_row_control(ui, current, "enabled") {
                 self.pending_selection.store(4, Ordering::Release);
@@ -1053,17 +1274,55 @@ impl BetterModMenuExtension {
         }
     }
 
-    fn select_row(&self, ui: &GameUI, index: usize, installed: usize) {
+    fn select_row(&self, ui: &GameUI, index: usize, installed: usize, visible_indices: &[usize]) {
         let index = index.min(installed - 1);
+        let capacity = mod_list_row_capacity(&ui.root);
+        if self.ensure_row_visible(index, visible_indices, capacity) {
+            self.navigation_target.store(index, Ordering::Release);
+            self.navigation_delay
+                .store(NAVIGATION_LAYOUT_FRAMES, Ordering::Release);
+            return;
+        }
         if let Some((x, y)) = mod_row_click_point(&ui.root, index) {
             if post_ui_click(ui, x, y) {
                 self.selected_index.store(index, Ordering::Release);
+                self.navigation_target
+                    .store(NO_NAVIGATION_TARGET, Ordering::Release);
             }
         }
     }
 
-    fn click_row_control(&self, ui: &GameUI, index: usize, control_id: &str) -> bool {
+    fn continue_navigation(
+        &self,
+        ui: &GameUI,
+        installed: usize,
+        visible_indices: &[usize],
+    ) -> bool {
+        let target = self.navigation_target.load(Ordering::Acquire);
+        if target == NO_NAVIGATION_TARGET {
+            return false;
+        }
+        if target >= installed || !visible_indices.contains(&target) {
+            self.navigation_target
+                .store(NO_NAVIGATION_TARGET, Ordering::Release);
+            self.navigation_delay.store(0, Ordering::Release);
+            return false;
+        }
+        let delay = self.navigation_delay.load(Ordering::Acquire);
+        if delay > 0 {
+            self.navigation_delay
+                .store(delay.saturating_sub(1), Ordering::Release);
+            return true;
+        }
+        self.select_row(ui, target, installed, visible_indices);
+        true
+    }
+
+    fn click_row_control(&self, ui: &mut GameUI, index: usize, control_id: &str) -> bool {
         if let Some((x, y)) = mod_row_control_click_point(&ui.root, index, control_id) {
+            set_mod_toggle_hitboxes_visible(&mut ui.root, false);
+            self.mouse_toggle_restore_frames
+                .store(NAVIGATION_LAYOUT_FRAMES, Ordering::Release);
             return post_ui_click(ui, x, y);
         }
         false
@@ -2401,11 +2660,15 @@ fn mods_popup(root: &Node) -> Option<&Node> {
     find_node(root, "mods_popup")
 }
 
-fn mod_rows(root: &Node) -> Option<&[Node]> {
+fn mod_list_scroll(root: &Node) -> Option<&Node> {
     let popup = mods_popup(root)?;
     let left_panel = find_node(popup, "left_panel")?;
     let table = find_node(left_panel, "table")?;
-    let scroll = table.child.iter().find(|child| child.id == "contents")?;
+    table.child.iter().find(|child| child.id == "contents")
+}
+
+fn mod_rows(root: &Node) -> Option<&[Node]> {
+    let scroll = mod_list_scroll(root)?;
     let contents = scroll.child.iter().find(|child| child.id == "contents")?;
     Some(&contents.child)
 }
@@ -2425,19 +2688,70 @@ fn mod_rows_mut(root: &mut Node) -> Option<&mut Vec<Node>> {
     Some(&mut contents.child)
 }
 
-fn mod_row_count(root: &Node) -> usize {
-    mod_rows(root).map_or(0, <[Node]>::len)
+fn node_id_path(node: &Node, target_id: &str) -> Option<Vec<String>> {
+    if node.id == target_id {
+        return Some(vec![node.id.clone()]);
+    }
+    for child in &node.child {
+        if let Some(mut path) = node_id_path(child, target_id) {
+            path.insert(0, node.id.clone());
+            return Some(path);
+        }
+    }
+    None
 }
 
-fn mod_visible_indices(root: &Node) -> Vec<usize> {
-    mod_rows(root)
-        .map(|rows| {
-            rows.iter()
-                .enumerate()
-                .filter_map(|(index, row)| row.visible.then_some(index))
-                .collect()
-        })
-        .unwrap_or_default()
+fn invoke_native_mod_toggle(
+    assets: &Assets,
+    platform: &dyn Platform,
+    scroll_path: &str,
+    focus: FocusState,
+    scroll_children: &mut [Node],
+    command: NativeBulkToggleCommand,
+) -> Option<Vec<UIEvent>> {
+    let contents_index = scroll_children
+        .iter()
+        .position(|node| node.id == "contents")?;
+    let contents_id = scroll_children[contents_index].id.clone();
+    let rows = &mut scroll_children[contents_index].child;
+    let row = rows.get_mut(command.index)?;
+    let control_id = if command.target_enabled {
+        "enabled"
+    } else {
+        "disabled"
+    };
+    let relative_path = node_id_path(row, control_id)?;
+    let control_path = std::iter::once(scroll_path.to_owned())
+        .chain(std::iter::once(contents_id))
+        .chain(relative_path)
+        .filter(|part| !part.is_empty())
+        .collect::<Vec<_>>()
+        .join(".");
+    let control = find_node_mut(row, control_id)?;
+    let control_rect = control.rect;
+    let events = {
+        let Node {
+            runner,
+            layout,
+            child,
+            ..
+        } = control;
+        runner.on_click(
+            assets,
+            platform,
+            &control_path,
+            layout,
+            focus,
+            &control_rect,
+            &control_rect,
+            child,
+        )
+    };
+    Some(events)
+}
+
+fn mod_row_count(root: &Node) -> usize {
+    mod_rows(root).map_or(0, <[Node]>::len)
 }
 
 fn label_text(node: &Node, assets: &Assets) -> Option<String> {
@@ -2552,7 +2866,7 @@ fn apply_mod_filter(
     assets: &Assets,
     query: &str,
     filter: ModSourceFilter,
-) -> usize {
+) -> Vec<usize> {
     let query = query.trim().to_lowercase();
     let visibility: Vec<bool> = mod_rows(root)
         .map(|rows| {
@@ -2580,7 +2894,35 @@ fn apply_mod_filter(
             row.visible = visible;
         }
     }
-    visibility.into_iter().filter(|visible| *visible).count()
+    visibility
+        .into_iter()
+        .enumerate()
+        .filter_map(|(index, visible)| visible.then_some(index))
+        .collect()
+}
+
+fn mod_list_row_capacity(root: &Node) -> usize {
+    let height = mod_list_scroll(root).map_or(0.0, |scroll| scroll.rect.h);
+    (((height + MOD_ROW_SPACING) / (MOD_ROW_HEIGHT + MOD_ROW_SPACING)).floor() as usize).max(1)
+}
+
+fn apply_mod_viewport(
+    root: &mut Node,
+    visible_indices: &[usize],
+    scroll_start: usize,
+    capacity: usize,
+) {
+    let displayed = visible_indices
+        .iter()
+        .skip(scroll_start)
+        .take(capacity.max(1))
+        .copied()
+        .collect::<Vec<_>>();
+    if let Some(rows) = mod_rows_mut(root) {
+        for (index, row) in rows.iter_mut().enumerate() {
+            row.visible = displayed.contains(&index);
+        }
+    }
 }
 
 fn node_center(node: &Node) -> Option<(f32, f32)> {
@@ -2622,16 +2964,136 @@ fn mod_row_toggle_at_point(
     assets: &Assets,
     x: f32,
     y: f32,
-) -> Option<(usize, String)> {
-    mod_rows(root)?.iter().enumerate().find_map(|(index, row)| {
-        if !row.visible
-            || (!node_contains_point(row, "enabled", x, y)
-                && !node_contains_point(row, "disabled", x, y))
-        {
+) -> Option<(usize, String, &'static str)> {
+    let viewport = &mod_list_scroll(root)?.rect;
+    if x < viewport.x
+        || x > viewport.x + viewport.w
+        || y < viewport.y
+        || y > viewport.y + viewport.h
+    {
+        return None;
+    }
+    let visual_rows = &find_node(root, "bmm_mod_rows")?.child;
+    visual_rows.iter().enumerate().find_map(|(index, row)| {
+        if !row.visible {
             return None;
         }
-        mod_row_name(row, assets).map(|name| (index, name))
+        let control = if node_contains_point(row, "bmm_row_enabled_hitbox", x, y) {
+            "enabled"
+        } else if node_contains_point(row, "bmm_row_disabled_hitbox", x, y) {
+            "disabled"
+        } else {
+            return None;
+        };
+        mod_rows(root)?
+            .get(index)
+            .and_then(|native_row| mod_row_name(native_row, assets))
+            .map(|name| (index, name, control))
     })
+}
+
+fn set_mod_toggle_hitboxes_visible(root: &mut Node, visible: bool) {
+    let Some(rows) = find_node_mut(root, "bmm_mod_rows") else {
+        return;
+    };
+    for row in &mut rows.child {
+        for id in [
+            "bmm_row_enabled_blocker",
+            "bmm_row_enabled_hitbox",
+            "bmm_row_disabled_blocker",
+            "bmm_row_disabled_hitbox",
+        ] {
+            let _ = set_node_visible(row, id, visible);
+        }
+    }
+}
+
+fn translate_node_rects(node: &mut Node, x: f32, y: f32) {
+    let delta_x = x - node.rect.x;
+    let delta_y = y - node.rect.y;
+    fn translate(node: &mut Node, delta_x: f32, delta_y: f32) {
+        node.rect.x += delta_x;
+        node.rect.y += delta_y;
+        for child in &mut node.child {
+            translate(child, delta_x, delta_y);
+        }
+    }
+    translate(node, delta_x, delta_y);
+}
+
+fn align_visible_mod_row_views(root: &mut Node) {
+    let Some(viewport) = mod_list_scroll(root).map(|scroll| scroll.rect) else {
+        return;
+    };
+    let native_visibility: Vec<_> = mod_rows(root)
+        .map(|rows| rows.iter().map(|row| row.visible).collect())
+        .unwrap_or_default();
+    let Some(rows) = find_node_mut(root, "bmm_mod_rows") else {
+        return;
+    };
+    let mut slot = 0usize;
+    for (row, native_visible) in rows.child.iter_mut().zip(native_visibility) {
+        row.visible = native_visible;
+        if !native_visible {
+            continue;
+        }
+        translate_node_rects(
+            row,
+            viewport.x,
+            viewport.y + slot as f32 * (MOD_ROW_HEIGHT + MOD_ROW_SPACING),
+        );
+        slot += 1;
+    }
+}
+
+fn set_node_vertical_layout(root: &mut Node, id: &str, y: f32, height: f32) {
+    let Some(node) = find_node_mut(root, id) else {
+        return;
+    };
+    for layout in [
+        &mut node.layout.normal,
+        &mut node.layout.hover,
+        &mut node.layout.active,
+        &mut node.layout.disabled,
+    ] {
+        layout.y = Length::Pixel(y);
+        layout.height = Length::Pixel(height);
+    }
+    node.runner.set_dirty(true);
+}
+
+fn sync_mod_list_scrollbar(
+    root: &mut Node,
+    scroll_start: usize,
+    total_rows: usize,
+    capacity: usize,
+) {
+    let scrollable = total_rows > capacity;
+    let _ = set_node_visible(root, "bmm_mod_scroll_track", scrollable);
+    if !scrollable {
+        return;
+    }
+    set_runtime_color_style(
+        root,
+        "bmm_mod_scroll_track",
+        [0.184, 0.200, 0.267, 1.0],
+        [0.184, 0.200, 0.267, 1.0],
+        0.0,
+    );
+    set_runtime_color_style(
+        root,
+        "bmm_mod_scroll_thumb",
+        [0.216, 0.835, 0.702, 1.0],
+        [0.216, 0.835, 0.702, 1.0],
+        0.0,
+    );
+    let track_height = 592.0;
+    let thumb_height =
+        (track_height * capacity as f32 / total_rows as f32).clamp(56.0, track_height);
+    let max_start = total_rows.saturating_sub(capacity).max(1);
+    let thumb_y =
+        (track_height - thumb_height) * scroll_start.min(max_start) as f32 / max_start as f32;
+    set_node_vertical_layout(root, "bmm_mod_scroll_thumb", thumb_y, thumb_height);
 }
 
 // --- Runtime layout loading and styling -----------------------------------
@@ -2708,6 +3170,7 @@ fn apply_base_layout(popup: &mut Node, blueprint: &Node) {
                 find_node(blueprint, "bmm_donor_table_scroll"),
             ) {
                 copy_layout(scroll, donor);
+                scroll.runner = Box::new(BetterModListRunner::default());
             }
         }
     }
@@ -2961,7 +3424,7 @@ fn ensure_runtime_ui(root: &mut Node, assets: &Assets) -> bool {
             let matches = assets
                 .get_all_assets()
                 .into_iter()
-                .filter(|(name, _)| name.contains("mod_menu"))
+                .filter(|(name, _)| name.contains(MOD_ID))
                 .count();
             let _ = set_label_text(
                 popup,
@@ -3281,7 +3744,7 @@ fn sync_mod_row_views(
     };
     for (row, view) in rows.child.iter_mut().zip(row_views) {
         row.visible = view.visible;
-        let _ = set_label_text(row, "bmm_mod_row_name", &view.name);
+        let _ = set_label_text(row, "bmm_mod_row_name", &truncate_chars(&view.name, 31));
         let _ = set_label_text(row, "bmm_mod_row_author", &view.author);
         let _ = set_label_text(row, "bmm_mod_row_source", &view.source);
         style_mod_row(row, view.selected, view.status, view.toggle);
@@ -4125,6 +4588,9 @@ fn init(_ctx: &GameCtx) -> ModRegistration {
     registration.set_extension(BetterModMenuExtension {
         popup_open: AtomicBool::new(false),
         pending_selection: AtomicUsize::new(0),
+        navigation_target: AtomicUsize::new(NO_NAVIGATION_TARGET),
+        navigation_delay: AtomicUsize::new(0),
+        scroll_start: AtomicUsize::new(0),
         selected_index: AtomicUsize::new(0),
         key_state: AtomicUsize::new(0),
         text_key_state: AtomicUsize::new(0),
@@ -4132,6 +4598,7 @@ fn init(_ctx: &GameCtx) -> ModRegistration {
         escape_down: AtomicBool::new(false),
         restarting: AtomicBool::new(false),
         mouse_down: AtomicBool::new(false),
+        mouse_toggle_restore_frames: AtomicUsize::new(0),
         toggle_reselect_pending: AtomicBool::new(false),
         profile_pinned: AtomicBool::new(false),
         profile_hover_frames: AtomicUsize::new(0),
@@ -4184,7 +4651,7 @@ mod tests {
 
     #[test]
     fn counts_only_json_array_strings() {
-        let source = r#"{"enabled_mods":["intro_skip","mod_menu"],"other":1}"#;
+        let source = r#"{"enabled_mods":["intro_skip","tfm2_better_mod_menu"],"other":1}"#;
         assert_eq!(json_string_array_len(source, "enabled_mods"), Some(2));
     }
 

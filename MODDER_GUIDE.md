@@ -3,6 +3,11 @@
 Better Mod Menu integration is optional. A normal TFM2 mod works without it,
 and Better Mod Menu never replaces your mod's validation or runtime logic.
 
+Using the two public JSON formats does **not** require publishing your mod's
+source code or licensing it under the GPL. Your JSON, artwork, DLL, and source
+remain yours. The Better Mod Menu license applies only if you copy, modify,
+link, or redistribute Better Mod Menu code or binaries.
+
 ## Choose what you need
 
 | Goal | Add this beside `mod.mod_info` |
@@ -15,7 +20,7 @@ and Better Mod Menu never replaces your mod's validation or runtime logic.
 Use any combination. The schema files stay in the Better Mod Menu repository;
 your mod only ships its own JSON and artwork.
 
-## Five-minute settings setup
+## Settings and actions
 
 1. Copy `better_mod_menu.json.example` into your mod root.
 2. Rename it to `better_mod_menu.json`.
@@ -56,6 +61,32 @@ With `game_data` storage, the setting is written to:
 Unknown top-level keys are preserved. Your mod may keep additional state in
 the same JSON file, but it must still validate values before using them.
 
+### Manifest fields
+
+| Field | Purpose |
+| --- | --- |
+| `$schema` | Enables editor validation and completion |
+| `schema_version` | Must be `1` |
+| `mod_id` | Must exactly match `mod.mod_info` |
+| `name` | Must exactly match `mod.mod_info` |
+| `storage` | `mod` or `game_data` |
+| `settings_file` | Relative JSON settings path |
+| `actions_file` | Optional relative action-request path |
+| `display` | Optional title, author, version, and summary overrides |
+| `controls` | Up to seven controls in display order |
+
+Omitted display fields fall back to `mod.mod_info`. Source, dependencies, and
+enabled state always come from the game and cannot be overridden.
+
+`game_data` stores files below:
+
+```text
+%APPDATA%/TeamSamoyed/TeamfightManager2/data/<mod_id>
+```
+
+`mod` stores them below the installed mod folder. Paths must be relative and
+cannot contain `..`, a drive prefix, or a rooted path.
+
 ## Available controls
 
 | Type | Best for | What Better Mod Menu writes |
@@ -68,6 +99,60 @@ the same JSON file, but it must still validate values before using them.
 Use the same optional `category` text on adjacent controls to create a compact
 section heading. Keep categories short and order controls as they should appear.
 
+Toggle:
+
+```json
+{
+  "type": "toggle",
+  "key": "enabled",
+  "label": "Feature",
+  "description": "Enable the feature.",
+  "default": true
+}
+```
+
+Choice:
+
+```json
+{
+  "type": "choice",
+  "key": "mode",
+  "label": "Mode",
+  "options": [
+    { "label": "Safe", "value": "safe" },
+    { "label": "Fast", "value": "fast" }
+  ]
+}
+```
+
+Button:
+
+```json
+{
+  "type": "button",
+  "action": "rebuild_cache",
+  "label": "Rebuild cache",
+  "button_label": "Rebuild"
+}
+```
+
+File cards:
+
+```json
+{
+  "type": "file_cards",
+  "action": "import_backup",
+  "label": "Recent backups",
+  "directory": "backups",
+  "filename_contains": "__verified_",
+  "extension": "data",
+  "limit": 5
+}
+```
+
+File-card directories are relative to game data. A selection writes the action
+and its zero-based file index; Better Mod Menu does not interpret the file.
+
 Buttons and file cards do not execute code. They create a request such as:
 
 ```json
@@ -78,9 +163,8 @@ Buttons and file cards do not execute code. They create a request such as:
 
 Your mod must validate, perform, report, and delete that request.
 
-The [manifest reference](MANIFEST.md) documents storage, action files, display
-overrides, and the full control format. The public
-[schema](better_mod_menu.schema.json) provides editor completion and validation.
+The public [manifest schema](better_mod_menu.schema.json) is the authority for
+exact field rules and provides editor completion and validation.
 
 ## Author profile
 

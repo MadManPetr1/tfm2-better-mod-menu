@@ -6,11 +6,11 @@
 
 A clearer, faster mod manager for **Teamfight Manager 2**.
 
-**Better Mod Menu 0.6.0 · TFM2 0.5.3 · Windows**
+**Better Mod Menu 0.7.0 · TFM2 0.5.3 · Windows**
 
 </div>
 
-![Better Mod Menu overview](docs/images/overview.png)
+![Better Mod Menu overview](assets/previews/overview.png)
 
 Better Mod Menu keeps the game's native mod system, but makes installed mods
 easier to search, understand, configure, and troubleshoot.
@@ -29,20 +29,24 @@ easier to search, understand, configure, and troubleshoot.
 
 ### Settings
 
-![Better Mod Menu settings](docs/images/settings.png)
+![Better Mod Menu settings](assets/previews/settings.png)
+
+### Restart and apply
+
+![Better Mod Menu restart and apply](assets/previews/restart-and-apply.png)
 
 ### Author profile
 
-![Better Mod Menu author profile](docs/images/author-profile.png)
+![Better Mod Menu author profile](assets/previews/author-profile.png)
 
 </details>
 
 ## Install
 
-1. Download `better-mod-menu-v0.6.0.zip` from
+1. Download `tfm2-better-mod-menu-v0.7.0.zip` from
    [GitHub Releases](https://github.com/MadManPetr1/tfm2-better-mod-menu/releases).
    Do not use GitHub's automatic source-code archive.
-2. Extract the included `mod_menu` folder into:
+2. Extract the included `tfm2_better_mod_menu` folder into:
 
    ```text
    ...\SteamLibrary\steamapps\common\Teamfight Manager2\mods\
@@ -50,8 +54,8 @@ easier to search, understand, configure, and troubleshoot.
 
 3. Enable **Better Mod Menu** in the native Mods screen and restart the game.
 
-The final folder must contain `mod_menu\mod.mod_info` and
-`mod_menu\mod_menu.dll`.
+The final folder must contain `tfm2_better_mod_menu\mod.mod_info` and
+`tfm2_better_mod_menu\tfm2_better_mod_menu.dll`.
 
 ## For mod authors
 
@@ -63,8 +67,10 @@ Menu. Two optional files unlock the richer interface:
 | `better_mod_menu.json` | Display metadata, settings, actions, and file cards |
 | `better_mod_menu_profile.json` | Author bio, local profile icon, and validated contact links |
 
-Start with the [five-minute modder guide](MODDER_GUIDE.md). The
-[manifest reference](MANIFEST.md), copy-ready
+Using these JSON formats does not require publishing or relicensing the mod's
+own source code.
+
+Start with the [modder guide](MODDER_GUIDE.md), then use the copy-ready
 [settings example](better_mod_menu.json.example),
 [profile example](better_mod_menu_profile.json.example), and public
 [settings](better_mod_menu.schema.json) / [profile](better_mod_menu_profile.schema.json)
@@ -90,7 +96,6 @@ Install the Teamfight Manager 2 `0.5.3` Mod SDK, then run:
 ```
 
 Contribution expectations are kept in [CONTRIBUTING.md](CONTRIBUTING.md).
-Security-sensitive reports should follow [SECURITY.md](SECURITY.md).
 
 ## License
 
