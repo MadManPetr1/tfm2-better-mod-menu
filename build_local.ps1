@@ -18,7 +18,7 @@ $manifest = Join-Path $PSScriptRoot "Cargo.toml"
 $targetDir = Join-Path $PSScriptRoot "target"
 $baseVersion = (Get-Content -LiteralPath (Join-Path $sdk "base_version.txt") -Raw).Trim()
 if ($baseVersion -ne "0.5.3") {
-    throw "Better Mod Menu 0.6.0 must be built with the 0.5.3 Mod SDK; found $baseVersion."
+    throw "Better Mod Menu 0.7.0 must be built with the 0.5.3 Mod SDK; found $baseVersion."
 }
 
 $pinned = Select-String -LiteralPath (Join-Path $sdk "rust-toolchain.toml") `
@@ -84,8 +84,8 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
-$generatedDll = Join-Path $targetDir "release\mod_menu.dll"
-$outputDll = Join-Path $PSScriptRoot "mod_menu.dll"
+$generatedDll = Join-Path $targetDir "release\tfm2_better_mod_menu.dll"
+$outputDll = Join-Path $PSScriptRoot "tfm2_better_mod_menu.dll"
 if (-not (Test-Path -LiteralPath $generatedDll -PathType Leaf)) {
     throw "Cargo build succeeded, but the generated DLL is missing: $generatedDll"
 }

@@ -17,6 +17,20 @@ copies of the game or SDK, or code copied from the game or SDK. It does not
 change the GPL obligations for Better Mod Menu itself or modifications derived
 from it.
 
+## Additional permission: JSON integration
+
+For avoidance of doubt, an otherwise independent mod may create and distribute
+files that follow the public `better_mod_menu.json` or
+`better_mod_menu_profile.json` schemas without applying the GPL to that mod.
+The same permission covers referencing the public schema URLs, reading settings
+written through the interface, and processing JSON action requests.
+
+No source-publication or GPL-licensing requirement arises solely from that JSON
+integration. You may keep the integrating mod private or release it under terms
+of your choice. This permission does not extend to copying, modifying, linking,
+or redistributing Better Mod Menu code or binaries outside the terms of the GPL
+and this file.
+
 ## Additional terms under GPLv3 section 7
 
 Redistributions and modified versions must:

@@ -14,6 +14,7 @@ bmm_mod_row:color {
     align_x: Left;
     align_y: Center;
     text: "";
+    ignore_event: true;
   }
   #bmm_mod_row_author:label {
     @"asset/base/style/main#label";
@@ -24,6 +25,7 @@ bmm_mod_row:color {
     align_x: Left;
     align_y: Center;
     text: "";
+    ignore_event: true;
   }
   #bmm_mod_row_source:label {
     @"asset/base/style/main#label";
@@ -34,6 +36,7 @@ bmm_mod_row:color {
     align_x: Center;
     align_y: Center;
     text: "";
+    ignore_event: true;
   }
   #bmm_row_toggle_track:empty {
     x: 508px;
@@ -154,6 +157,23 @@ bmm_mod_row:color {
         align_x: Center;
         align_y: Center;
         text: "Enabled";
+        ignore_event: true;
+      }
+      #bmm_row_enabled_blocker:empty {
+        width: 100%;
+        height: 100%;
+        ignore_event: false;
+      }
+      #bmm_row_enabled_hitbox:button {
+        x: 1px;
+        y: 1px;
+        width: 80px;
+        height: 28px;
+        ignore_event: false;
+        source: "";
+        color: #00000000;
+        hover: { color: #00000000; }
+        active: { color: #00000000; }
       }
     }
     #bmm_row_disabled:color {
@@ -172,6 +192,23 @@ bmm_mod_row:color {
         align_x: Center;
         align_y: Center;
         text: "Disabled";
+        ignore_event: true;
+      }
+      #bmm_row_disabled_blocker:empty {
+        width: 100%;
+        height: 100%;
+        ignore_event: false;
+      }
+      #bmm_row_disabled_hitbox:button {
+        x: 1px;
+        y: 1px;
+        width: 80px;
+        height: 28px;
+        ignore_event: false;
+        source: "";
+        color: #00000000;
+        hover: { color: #00000000; }
+        active: { color: #00000000; }
       }
     }
     #bmm_row_status_slot:color {
@@ -190,7 +227,7 @@ bmm_mod_row:color {
         height: 24px;
         visible: false;
         ignore_event: true;
-        source: "asset/mod_menu/ui/icons/status-restart";
+        source: "asset/tfm2_better_mod_menu/ui/icons/status-restart";
       }
       #bmm_row_status_update:image {
         x: 3px;
@@ -199,7 +236,7 @@ bmm_mod_row:color {
         height: 24px;
         visible: false;
         ignore_event: true;
-        source: "asset/mod_menu/ui/icons/status-update";
+        source: "asset/tfm2_better_mod_menu/ui/icons/status-update";
       }
       #bmm_row_status_warning:image {
         x: 3px;
@@ -208,7 +245,7 @@ bmm_mod_row:color {
         height: 24px;
         visible: false;
         ignore_event: true;
-        source: "asset/mod_menu/ui/icons/status-warning";
+        source: "asset/tfm2_better_mod_menu/ui/icons/status-warning";
       }
     }
   }

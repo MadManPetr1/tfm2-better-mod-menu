@@ -1,10 +1,10 @@
 {
-  "mod_id": "mod_menu",
+  "mod_id": "tfm2_better_mod_menu",
   "name": "Better Mod Menu",
   "author": "MadManPetr1",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "A fully DLL-owned Mod Manager surface for TFM2 with search, filters, rich previews, manifest-driven settings, dependency health warnings, categorized controls, tooltips and automatic restart-and-apply support. It preserves the game's native fonts, mod data and interaction language.",
-  "last_updated": "2026-07-30",
+  "last_updated": "2026-08-04",
   "dependencies": [
     {
       "mod_id": "base",

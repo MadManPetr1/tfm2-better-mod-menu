@@ -19,16 +19,19 @@ foreach ($relativePath in @(
     "better_mod_menu_profile.json.example",
     "better_mod_menu_profile.schema.json",
     "assets/thumbnail-master.png",
+    "assets/previews/overview.png",
+    "assets/previews/settings.png",
+    "assets/previews/restart-and-apply.png",
+    "assets/previews/author-profile.png",
     "profile_icon.png",
     "thumbnail.png",
     "README.md",
+    "workshop_description.txt",
     "CHANGELOG.md",
     "CONTRIBUTING.md",
-    "SECURITY.md",
     "LICENSE",
     "LICENSE-EXCEPTION.md",
     "NOTICE.md",
-    "MANIFEST.md",
     "MODDER_GUIDE.md",
     "THIRD_PARTY_NOTICES.md",
     "scripts/package_release.ps1",
@@ -65,12 +68,16 @@ foreach ($relativePath in @(
 
 $modInfo = Get-Content -LiteralPath (Join-Path $root "mod.mod_info") -Raw | ConvertFrom-Json
 $cargo = Get-Content -LiteralPath (Join-Path $root "Cargo.toml") -Raw
+$workshop = Get-Content -LiteralPath (Join-Path $root "workshop_description.txt") -Raw
 $cargoVersion = [regex]::Match($cargo, '(?m)^version\s*=\s*"([^"]+)"').Groups[1].Value
 if ($cargoVersion -ne $modInfo.version) {
     throw "Version mismatch: Cargo.toml is $cargoVersion, mod.mod_info is $($modInfo.version)."
 }
-if ($modInfo.mod_id -ne "mod_menu") {
-    throw "mod.mod_info must declare mod_id mod_menu."
+if ($modInfo.mod_id -ne "tfm2_better_mod_menu") {
+    throw "mod.mod_info must declare mod_id tfm2_better_mod_menu."
+}
+if ($cargo -notmatch '(?m)^name\s*=\s*"tfm2_better_mod_menu"') {
+    throw "Cargo.toml package name must be tfm2_better_mod_menu."
 }
 $base = @($modInfo.dependencies | Where-Object { $_.mod_id -eq "base" })
 if ($base.Count -ne 1 -or $base[0].version -ne ">=0.5.3, <0.5.4") {
@@ -78,6 +85,15 @@ if ($base.Count -ne 1 -or $base[0].version -ne ">=0.5.3, <0.5.4") {
 }
 if ($cargo -notmatch '(?m)^license\s*=\s*"GPL-3\.0-or-later"') {
     throw "Cargo.toml must declare GPL-3.0-or-later."
+}
+if ($workshop -notmatch [regex]::Escape("[code]tfm2_better_mod_menu.dll[/code]")) {
+    throw "Workshop description must name tfm2_better_mod_menu.dll."
+}
+if ($workshop -notmatch [regex]::Escape("[b]Current version:[/b] v$($modInfo.version)")) {
+    throw "Workshop description version does not match mod.mod_info."
+}
+if ($workshop -notmatch [regex]::Escape("[url=https://github.com/MadManPetr1/tfm2-better-mod-menu]Source code on GitHub[/url]")) {
+    throw "Workshop description must link to the public source repository."
 }
 
 Get-Content -LiteralPath (Join-Path $root "better_mod_menu.schema.json") -Raw |
