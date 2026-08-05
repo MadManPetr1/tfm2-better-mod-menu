@@ -68,10 +68,15 @@ foreach ($relativePath in @(
 
 $modInfo = Get-Content -LiteralPath (Join-Path $root "mod.mod_info") -Raw | ConvertFrom-Json
 $cargo = Get-Content -LiteralPath (Join-Path $root "Cargo.toml") -Raw
+$cargoLock = Get-Content -LiteralPath (Join-Path $root "Cargo.lock") -Raw
 $workshop = Get-Content -LiteralPath (Join-Path $root "workshop_description.txt") -Raw
 $cargoVersion = [regex]::Match($cargo, '(?m)^version\s*=\s*"([^"]+)"').Groups[1].Value
-if ($cargoVersion -ne $modInfo.version) {
-    throw "Version mismatch: Cargo.toml is $cargoVersion, mod.mod_info is $($modInfo.version)."
+$lockVersion = [regex]::Match(
+    $cargoLock,
+    '(?ms)\[\[package\]\]\s+name\s*=\s*"tfm2_better_mod_menu"\s+version\s*=\s*"([^"]+)"'
+).Groups[1].Value
+if ($cargoVersion -ne $modInfo.version -or $lockVersion -ne $modInfo.version) {
+    throw "Version mismatch between Cargo.toml, Cargo.lock, and mod.mod_info."
 }
 if ($modInfo.mod_id -ne "tfm2_better_mod_menu") {
     throw "mod.mod_info must declare mod_id tfm2_better_mod_menu."
@@ -80,8 +85,8 @@ if ($cargo -notmatch '(?m)^name\s*=\s*"tfm2_better_mod_menu"') {
     throw "Cargo.toml package name must be tfm2_better_mod_menu."
 }
 $base = @($modInfo.dependencies | Where-Object { $_.mod_id -eq "base" })
-if ($base.Count -ne 1 -or $base[0].version -ne ">=0.5.3, <0.5.4") {
-    throw "Better Mod Menu must declare the tested 0.5.3 base range."
+if ($base.Count -ne 1 -or $base[0].version -ne ">=0.5.3, <0.5.5") {
+    throw "Better Mod Menu must declare the tested 0.5.3-0.5.4 base range."
 }
 if ($cargo -notmatch '(?m)^license\s*=\s*"GPL-3\.0-or-later"') {
     throw "Cargo.toml must declare GPL-3.0-or-later."
@@ -94,6 +99,24 @@ if ($workshop -notmatch [regex]::Escape("[b]Current version:[/b] v$($modInfo.ver
 }
 if ($workshop -notmatch [regex]::Escape("[url=https://github.com/MadManPetr1/tfm2-better-mod-menu]Source code on GitHub[/url]")) {
     throw "Workshop description must link to the public source repository."
+}
+if ($workshop -notmatch '\[b\]Tested with:\[/b\] TFM2 0\.5\.3.+0\.5\.4') {
+    throw "Workshop Tested with line must match the supported base range."
+}
+if ($workshop -notmatch '(?m)^\[b\]Last tested:\[/b\] \d{2}/\d{2}/\d{4}$') {
+    throw "Workshop Last tested must use DD/MM/YYYY."
+}
+$featuresStart = $workshop.IndexOf("[h2]Features[/h2]", [StringComparison]::Ordinal)
+$featuresEnd = $workshop.IndexOf("[h2]Compatibility[/h2]", [StringComparison]::Ordinal)
+if ($featuresStart -lt 0 -or $featuresEnd -le $featuresStart) {
+    throw "Workshop Features and Compatibility sections are missing or out of order."
+}
+$featureCount = [regex]::Matches(
+    $workshop.Substring($featuresStart, $featuresEnd - $featuresStart),
+    '(?m)^\[\*\]'
+).Count
+if ($featureCount -lt 1 -or $featureCount -gt 6) {
+    throw "Workshop Features must contain between one and six entries."
 }
 
 Get-Content -LiteralPath (Join-Path $root "better_mod_menu.schema.json") -Raw |

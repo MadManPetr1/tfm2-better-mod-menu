@@ -4,6 +4,18 @@ All notable public changes to Better Mod Menu are documented here.
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-08-05
+
+### Changed
+
+- Rebuilt the native DLL against the Teamfight Manager 2 `0.5.4` Mod SDK.
+- Extended the supported base range to `>=0.5.3, <0.5.5` without changing
+  menu behavior or stored integration data.
+
+### Compatibility
+
+- Runtime-tested on Teamfight Manager 2 `0.5.4`.
+
 ## [0.7.0] - 2026-08-04
 
 ### Added
@@ -91,7 +103,8 @@ All notable public changes to Better Mod Menu are documented here.
 
 - Built and runtime-tested for Teamfight Manager 2 `0.5.3`.
 
-[Unreleased]: https://github.com/MadManPetr1/tfm2-better-mod-menu/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/MadManPetr1/tfm2-better-mod-menu/compare/v0.7.1...HEAD
+[0.7.1]: https://github.com/MadManPetr1/tfm2-better-mod-menu/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/MadManPetr1/tfm2-better-mod-menu/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/MadManPetr1/tfm2-better-mod-menu/compare/v0.5.3...v0.6.0
 [0.5.3]: https://github.com/MadManPetr1/tfm2-better-mod-menu/tree/v0.5.3
