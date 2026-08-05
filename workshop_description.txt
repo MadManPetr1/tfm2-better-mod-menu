@@ -7,8 +7,7 @@ Search, inspect, configure, and troubleshoot installed mods through a dedicated 
 [h2]Features[/h2]
 
 [list]
-[*] Search installed mods by name or author.
-[*] Filter All, Local, and Workshop mods.
+[*] Search installed mods by name or author and filter All, Local, or Workshop mods.
 [*] Scroll long mod lists with the mouse wheel or keyboard.
 [*] Enable or disable individual mods or apply a bulk action.
 [*] Review dependency, version, update, and restart warnings.
@@ -20,7 +19,7 @@ Mods do not need Better Mod Menu integration to appear or remain manageable.
 
 [h2]Compatibility[/h2]
 
-[b]Tested with:[/b] TFM2 0.5.3
+[b]Tested with:[/b] TFM2 0.5.3–0.5.4
 
 Compatibility with later versions is not guaranteed until confirmed.
 
@@ -51,7 +50,7 @@ This mod contains native code:
 
 [url=https://github.com/MadManPetr1/tfm2-better-mod-menu]Source code on GitHub[/url]
 
-[b]Current version:[/b] v0.7.0
-[b]Last tested:[/b] 08/04/2026
+[b]Current version:[/b] v0.7.1
+[b]Last tested:[/b] 05/08/2026
 
 When reporting a problem, include your game version, Better Mod Menu version, enabled mods, relevant logs, and any related integration JSON.

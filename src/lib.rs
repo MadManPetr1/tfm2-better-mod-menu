@@ -35,7 +35,7 @@ const SETTING_CATEGORY_ASSET: &str =
     "asset/tfm2_better_mod_menu/ui/layout/mods_component/mod_setting_category_runtime";
 const SETTINGS_MANIFEST_FILE: &str = "better_mod_menu.json";
 const MODDER_PROFILE_FILE: &str = "better_mod_menu_profile.json";
-const GAME_VERSION: &str = "0.5.3";
+const GAME_VERSION: &str = "0.5.4";
 const LABEL_RUNNER_TYPE: &str = "engine_ui::runner::label::LabelRunner";
 const COLOR_RUNNER_TYPE: &str = "engine_ui::runner::color::ColorRunner";
 const COLOR_SELECTABLE_RUNNER_TYPE: &str = "engine_ui::runner::selectable::ColorSelectableRunner";
@@ -3873,7 +3873,7 @@ fn replace_image_child(node: &mut Node, assets: &Assets, target_id: &str, source
         }
         let previous = &node.child[index];
         let previous_image = image_runner(previous);
-        let previous_z = previous_image.map(|image| image.z.clone());
+        let previous_z = previous_image.map(|image| image.z);
         let previous_ignore_event = previous_image.map(|image| image.ignore_event);
         let mut replacement = template.load(assets);
         replacement.id = target_id.to_owned();
@@ -4644,9 +4644,9 @@ mod tests {
 
     #[test]
     fn evaluates_supported_version_ranges() {
-        assert!(version_satisfies("0.5.3", ">=0.5.2, <0.5.4"));
-        assert!(!version_satisfies("0.5.4", ">=0.5.2, <0.5.4"));
-        assert_eq!(compare_versions("v0.5.3", "0.5.3.0"), Ordering::Equal);
+        assert!(version_satisfies("0.5.4", ">=0.5.2, <0.5.5"));
+        assert!(!version_satisfies("0.5.5", ">=0.5.2, <0.5.5"));
+        assert_eq!(compare_versions("v0.5.4", "0.5.4.0"), Ordering::Equal);
     }
 
     #[test]
@@ -4658,8 +4658,8 @@ mod tests {
     #[test]
     fn formats_dependency_requirements_for_people() {
         assert_eq!(
-            friendly_version_requirement(">=0.5.2, <0.5.4"),
-            "≥ 0.5.2 and < 0.5.4"
+            friendly_version_requirement(">=0.5.2, <0.5.5"),
+            "≥ 0.5.2 and < 0.5.5"
         );
     }
 
