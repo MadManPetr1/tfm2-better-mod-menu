@@ -4,6 +4,70 @@ All notable public changes to Better Mod Menu are documented here.
 
 ## [Unreleased]
 
+## [0.7.5] - 2026-08-27
+
+### Fixed
+
+- Made the ON and OFF halves of manifest-driven switches set explicit values
+  instead of toggling the setting from either side.
+- Prevented the native right-hand mod details panel from rendering underneath
+  Better Mod Menu while its replacement panel is ready.
+- Stopped competing preview refresh paths from alternating thumbnail fallback
+  and dependency text, eliminating the selected-mod header flicker.
+
+### Changed
+
+- Cached static mod-row metadata and file-card paths instead of rebuilding them
+  during routine UI updates.
+- Reduced unchanged style, font, preview and settings writes so the menu dirties
+  fewer UI nodes while idle.
+- Kept the native panel available as a fallback if Better Mod Menu cannot finish
+  preparing its own runtime surface.
+
+### Compatibility
+
+- Built and manually tested on Teamfight Manager 2 `0.5.7`, including Intro
+  Skip settings, Overview/Settings switching, thumbnails and dependency text.
+
+## [0.7.4] - 2026-08-26
+
+### Changed
+
+- Rebuilt the native DLL against the Teamfight Manager 2 `0.5.7` Mod SDK.
+- Restricted the declared base range to `>=0.5.7, <0.5.8` because the native
+  SDK libraries changed and older game versions have not been runtime-tested
+  with this build.
+
+### Compatibility
+
+- Tested on Teamfight Manager 2 `0.5.7`.
+
+## [0.7.3] - 2026-08-20
+
+### Changed
+
+- Rebuilt the native DLL against the Teamfight Manager 2 `0.5.6` Mod SDK.
+- Restricted the declared base range to `>=0.5.6, <0.5.7` because the native
+  SDK libraries changed and older game versions have not been runtime-tested
+  with this build.
+
+### Compatibility
+
+- Tested on Teamfight Manager 2 `0.5.6`.
+
+## [0.7.2] - 2026-08-12
+
+### Changed
+
+- Rebuilt the native DLL against the Teamfight Manager 2 `0.5.5` Mod SDK.
+- Restricted the declared base range to `>=0.5.5, <0.5.6` because the native
+  SDK libraries changed and older game versions have not been runtime-tested
+  with this build.
+
+### Compatibility
+
+- Tested on Teamfight Manager 2 `0.5.5`.
+
 ## [0.7.1] - 2026-08-05
 
 ### Changed
@@ -103,7 +167,11 @@ All notable public changes to Better Mod Menu are documented here.
 
 - Built and runtime-tested for Teamfight Manager 2 `0.5.3`.
 
-[Unreleased]: https://github.com/MadManPetr1/tfm2-better-mod-menu/compare/v0.7.1...HEAD
+[Unreleased]: https://github.com/MadManPetr1/tfm2-better-mod-menu/compare/v0.7.5...HEAD
+[0.7.5]: https://github.com/MadManPetr1/tfm2-better-mod-menu/compare/v0.7.4...v0.7.5
+[0.7.4]: https://github.com/MadManPetr1/tfm2-better-mod-menu/compare/v0.7.3...v0.7.4
+[0.7.3]: https://github.com/MadManPetr1/tfm2-better-mod-menu/compare/v0.7.2...v0.7.3
+[0.7.2]: https://github.com/MadManPetr1/tfm2-better-mod-menu/compare/v0.7.1...v0.7.2
 [0.7.1]: https://github.com/MadManPetr1/tfm2-better-mod-menu/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/MadManPetr1/tfm2-better-mod-menu/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/MadManPetr1/tfm2-better-mod-menu/compare/v0.5.3...v0.6.0

@@ -19,7 +19,7 @@ Mods do not need Better Mod Menu integration to appear or remain manageable.
 
 [h2]Compatibility[/h2]
 
-[b]Tested with:[/b] TFM2 0.5.3–0.5.4
+[b]Tested with:[/b] TFM2 0.5.7
 
 Compatibility with later versions is not guaranteed until confirmed.
 
@@ -35,10 +35,11 @@ Enabling, disabling, or updating native mods may still require a restart.
 
 [h2]For mod authors[/h2]
 
-Optional integration uses at most two files:
+Optional integration uses at most three files:
 
 [code]better_mod_menu.json
-better_mod_menu_profile.json[/code]
+better_mod_menu_profile.json
+profile_icon.png[/code]
 
 Schemas, examples, and the modder guide are available in the GitHub repository.
 
@@ -50,7 +51,7 @@ This mod contains native code:
 
 [url=https://github.com/MadManPetr1/tfm2-better-mod-menu]Source code on GitHub[/url]
 
-[b]Current version:[/b] v0.7.1
-[b]Last tested:[/b] 05/08/2026
+[b]Current version:[/b] v0.7.5
+[b]Last tested:[/b] 27/08/2026
 
 When reporting a problem, include your game version, Better Mod Menu version, enabled mods, relevant logs, and any related integration JSON.

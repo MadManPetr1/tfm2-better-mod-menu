@@ -35,7 +35,7 @@ const SETTING_CATEGORY_ASSET: &str =
     "asset/tfm2_better_mod_menu/ui/layout/mods_component/mod_setting_category_runtime";
 const SETTINGS_MANIFEST_FILE: &str = "better_mod_menu.json";
 const MODDER_PROFILE_FILE: &str = "better_mod_menu_profile.json";
-const GAME_VERSION: &str = "0.5.4";
+const GAME_VERSION: &str = "0.5.7";
 const LABEL_RUNNER_TYPE: &str = "engine_ui::runner::label::LabelRunner";
 const COLOR_RUNNER_TYPE: &str = "engine_ui::runner::color::ColorRunner";
 const COLOR_SELECTABLE_RUNNER_TYPE: &str = "engine_ui::runner::selectable::ColorSelectableRunner";
@@ -199,14 +199,32 @@ struct ToggleTransition {
     progress: f32,
 }
 
-struct ModRowViewData {
-    name: String,
-    author: String,
-    source: String,
+struct ModRowViewData<'a> {
+    name: &'a str,
+    author: &'a str,
+    source: &'a str,
     visible: bool,
     selected: bool,
     status: ModStatus,
     toggle: ToggleVisual,
+}
+
+#[derive(Clone)]
+struct ModRowStaticData {
+    name: String,
+    author: String,
+    source: String,
+    search_text: String,
+    is_code: bool,
+    is_workshop: bool,
+}
+
+struct ModRowSyncContext<'a> {
+    cache: &'a [ModRowStaticData],
+    selection_hint: &'a str,
+    prefer_selection_hint: bool,
+    baseline_mod_states: &'a [(String, bool)],
+    dependency_warnings: &'a [(String, String)],
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -393,17 +411,35 @@ struct ModSettingsCatalog {
     poll_tick: usize,
     show_settings: bool,
     dependency_tooltip: String,
+    file_cards: HashMap<usize, Vec<PathBuf>>,
+    file_cards_refresh_requested: bool,
+    render_requested: bool,
+}
+
+#[derive(Default)]
+struct SettingsSyncOutcome {
+    rows_created: bool,
 }
 
 #[derive(Clone, Copy)]
 enum SettingAction {
-    Toggle,
+    SetToggle(bool),
     Previous,
     Next,
     Run,
     RunIndex(usize),
     ShowOverview,
     ShowSettings,
+}
+
+fn requested_toggle_value(on_hit: bool, off_hit: bool) -> Option<bool> {
+    if on_hit {
+        Some(true)
+    } else if off_hit {
+        Some(false)
+    } else {
+        None
+    }
 }
 
 fn default_storage() -> String {
@@ -452,6 +488,7 @@ struct BetterModMenuExtension {
     filter: AtomicUsize,
     query: Mutex<String>,
     selected_name: Mutex<String>,
+    row_cache: Mutex<Vec<ModRowStaticData>>,
     baseline_mod_states: Mutex<Vec<(String, bool)>>,
     toggle_transitions: Mutex<Vec<ToggleTransition>>,
     bulk_toggle: Mutex<Option<BulkToggleOperation>>,
@@ -466,6 +503,11 @@ impl ModExtension for BetterModMenuExtension {
         let open = node_is_visible(&ui.root, "mods_popup");
         let was_open = self.popup_open.swap(open, Ordering::AcqRel);
         if !open {
+            let _ = set_node_visible(
+                &mut ui.root,
+                "right_panel",
+                should_show_native_right_panel(false, false),
+            );
             self.key_state.store(0, Ordering::Release);
             self.text_key_state.store(0, Ordering::Release);
             self.shortcut_down.store(false, Ordering::Release);
@@ -499,7 +541,13 @@ impl ModExtension for BetterModMenuExtension {
             return;
         }
 
-        if !ensure_runtime_ui(&mut ui.root, assets) {
+        let runtime_ready = ensure_runtime_ui(&mut ui.root, assets);
+        let _ = set_node_visible(
+            &mut ui.root,
+            "right_panel",
+            should_show_native_right_panel(true, runtime_ready),
+        );
+        if !runtime_ready {
             return;
         }
         self.sync_mouse_toggle_hitboxes(&mut ui.root);
@@ -508,10 +556,14 @@ impl ModExtension for BetterModMenuExtension {
             return;
         }
         let styled_row_count = self.styled_row_count.swap(installed, Ordering::AcqRel);
-        if !was_open || styled_row_count != installed {
+        let runtime_layout_rebuilt = !was_open || styled_row_count != installed;
+        if runtime_layout_rebuilt {
             apply_mod_row_layouts(&mut ui.root, assets);
+            if let Ok(mut cache) = self.row_cache.lock() {
+                *cache = build_mod_row_cache(&ui.root, assets);
+            }
         }
-        self.capture_baseline_mod_states(&ui.root, assets);
+        self.capture_baseline_mod_states(&ui.root);
         if !was_open {
             self.pending_selection.store(2, Ordering::Release);
             if let Ok(mut catalog) = self.settings_catalog.lock() {
@@ -555,50 +607,46 @@ impl ModExtension for BetterModMenuExtension {
             || hovered_profile_control;
         self.filter_hovered
             .store(hovered_clickable, Ordering::Release);
-        let query = self
-            .query
-            .lock()
-            .map(|value| value.clone())
+        let query_guard = self.query.lock().ok();
+        let query = query_guard
+            .as_deref()
+            .map(String::as_str)
             .unwrap_or_default();
         let filter = ModSourceFilter::from_raw(self.filter.load(Ordering::Acquire));
-        let visible_indices = apply_mod_filter(&mut ui.root, assets, &query, filter);
+        let row_cache_guard = self.row_cache.lock().ok();
+        let row_cache = row_cache_guard.as_deref().map(Vec::as_slice).unwrap_or(&[]);
+        let visible_indices = apply_mod_filter(&mut ui.root, row_cache, query, filter);
         let row_capacity = mod_list_row_capacity(&ui.root);
         let scroll_start = self.update_scroll_start(visible_indices.len(), row_capacity);
         apply_mod_viewport(&mut ui.root, &visible_indices, scroll_start, row_capacity);
         let visible = visible_indices.len();
-        let selection_hint = self
-            .selected_name
-            .lock()
-            .map(|name| name.clone())
+        let selection_guard = self.selected_name.lock().ok();
+        let selection_hint = selection_guard
+            .as_deref()
+            .map(String::as_str)
             .unwrap_or_default();
-        let baseline_mod_states = self
-            .baseline_mod_states
-            .lock()
-            .map(|states| states.clone())
-            .unwrap_or_default();
-        let dependency_warnings = self
-            .settings_catalog
-            .lock()
-            .map(|catalog| catalog.dependency_warnings.clone())
-            .unwrap_or_default();
-        let pending_restart = current_mod_states(&ui.root, assets)
-            .iter()
-            .any(|(name, enabled)| {
-                baseline_mod_states
-                    .iter()
-                    .find(|(baseline_name, _)| baseline_name == name)
-                    .is_some_and(|(_, baseline_enabled)| baseline_enabled != enabled)
-            });
+        let baseline_guard = self.baseline_mod_states.lock().ok();
+        let baseline_mod_states = baseline_guard.as_deref().map(Vec::as_slice).unwrap_or(&[]);
+        let mut catalog_guard = self.settings_catalog.lock().ok();
+        let dependency_warnings = catalog_guard
+            .as_deref()
+            .map(|catalog| catalog.dependency_warnings.as_slice())
+            .unwrap_or(&[]);
+        let pending_restart = has_pending_restart(&ui.root, row_cache, baseline_mod_states);
         let prefer_selection_hint = self.toggle_reselect_pending.load(Ordering::Acquire)
             || self.pending_selection.load(Ordering::Acquire) > 0;
+        let mut row_views_created = false;
         if let Ok(mut transitions) = self.toggle_transitions.lock() {
-            sync_mod_row_views(
+            row_views_created = sync_mod_row_views(
                 &mut ui.root,
                 assets,
-                &selection_hint,
-                prefer_selection_hint,
-                &baseline_mod_states,
-                &dependency_warnings,
+                ModRowSyncContext {
+                    cache: row_cache,
+                    selection_hint,
+                    prefer_selection_hint,
+                    baseline_mod_states,
+                    dependency_warnings,
+                },
                 &mut transitions,
             );
         }
@@ -609,7 +657,7 @@ impl ModExtension for BetterModMenuExtension {
                 installed,
                 visible,
                 enabled: self.enabled_count.load(Ordering::Acquire),
-                query: &query,
+                query,
                 filter,
                 hovered_filter,
                 hovered_bulk,
@@ -623,30 +671,59 @@ impl ModExtension for BetterModMenuExtension {
             visible_indices.len(),
             row_capacity,
         );
-        if selected_mod_name(&ui.root, assets).is_some_and(|name| name != NO_SELECTION) {
+        let preview_name = selected_mod_name(&ui.root, assets)
+            .filter(|name| name != NO_SELECTION)
+            .unwrap_or_default();
+        let preview_selection_changed = catalog_guard
+            .as_deref()
+            .is_some_and(|catalog| catalog.active_name != preview_name);
+        if !preview_name.is_empty()
+            && should_refresh_selected_preview(was_open, preview_selection_changed, poll)
+        {
             sync_selected_preview(&mut ui.root, assets);
         }
-        let dependency_tooltip = if let Ok(mut catalog) = self.settings_catalog.lock() {
-            sync_mod_settings(&mut ui.root, assets, &mut catalog);
-            self.sync_profile_card(&mut ui.root, assets, &catalog, cursor);
-            catalog.dependency_tooltip.clone()
+
+        let mut settings_outcome = SettingsSyncOutcome::default();
+        if let Some(catalog) = catalog_guard.as_deref_mut() {
+            settings_outcome = sync_mod_settings(&mut ui.root, assets, catalog);
+            self.sync_profile_card(&mut ui.root, assets, catalog, cursor);
         } else {
             let _ = set_node_visible(&mut ui.root, "bmm_profile_card", false);
             let _ = set_node_visible(&mut ui.root, "bmm_author_profile_hitbox", false);
-            String::new()
-        };
+        }
+        if should_refresh_runtime_fonts(
+            runtime_layout_rebuilt,
+            row_views_created,
+            settings_outcome.rows_created,
+        ) {
+            apply_runtime_fonts(&mut ui.root);
+        }
+        let dependency_tooltip = catalog_guard
+            .as_deref()
+            .map(|catalog| catalog.dependency_tooltip.as_str())
+            .unwrap_or_default();
+        let dependency_warnings = catalog_guard
+            .as_deref()
+            .map(|catalog| catalog.dependency_warnings.as_slice())
+            .unwrap_or(&[]);
         let tooltip = cursor.and_then(|(x, y)| {
             tooltip_at_point(
                 &ui.root,
                 assets,
                 x,
                 y,
-                &dependency_tooltip,
-                &dependency_warnings,
+                dependency_tooltip,
+                dependency_warnings,
                 pending_restart,
             )
         });
         sync_runtime_tooltip(&mut ui.root, tooltip.as_deref());
+
+        drop(catalog_guard);
+        drop(baseline_guard);
+        drop(selection_guard);
+        drop(row_cache_guard);
+        drop(query_guard);
 
         self.process_bulk_toggle(ui, assets);
 
@@ -733,12 +810,14 @@ impl BetterModMenuExtension {
         true
     }
 
-    fn capture_baseline_mod_states(&self, root: &Node, assets: &Assets) {
+    fn capture_baseline_mod_states(&self, root: &Node) {
         let Ok(mut baseline) = self.baseline_mod_states.lock() else {
             return;
         };
         if baseline.is_empty() {
-            *baseline = current_mod_states(root, assets);
+            if let Ok(cache) = self.row_cache.lock() {
+                *baseline = current_mod_states(root, &cache);
+            }
         }
     }
 
@@ -784,7 +863,7 @@ impl BetterModMenuExtension {
         }
 
         if let Some(action) = bulk_action_at_point(&ui.root, x, y) {
-            self.start_bulk_toggle(&ui.root, assets, action);
+            self.start_bulk_toggle(&ui.root, action);
             let _ = set_search_editing(&mut ui.root, false);
             self.search_focused.store(false, Ordering::Release);
             self.text_key_state.store(0, Ordering::Release);
@@ -865,7 +944,7 @@ impl BetterModMenuExtension {
         apply_setting_action(&mut catalog, row_index, action)
     }
 
-    fn start_bulk_toggle(&self, root: &Node, assets: &Assets, action: BulkAction) {
+    fn start_bulk_toggle(&self, root: &Node, action: BulkAction) {
         if self
             .bulk_toggle
             .lock()
@@ -887,7 +966,12 @@ impl BetterModMenuExtension {
                 (bmm_name, catalog.dependency_warnings.clone())
             })
             .unwrap_or_else(|_| ("Better Mod Menu".to_owned(), Vec::new()));
-        let mut remaining: Vec<_> = current_mod_states(root, assets)
+        let states = self
+            .row_cache
+            .lock()
+            .map(|cache| current_mod_states(root, &cache))
+            .unwrap_or_default();
+        let mut remaining: Vec<_> = states
             .into_iter()
             .enumerate()
             .filter_map(|(index, (name, enabled))| {
@@ -1864,6 +1948,74 @@ fn file_card_paths(directory: &str, contains: &str, extension: &str, limit: usiz
         .collect()
 }
 
+fn should_refresh_file_cards(
+    selection_changed: bool,
+    action_requested: bool,
+    poll_tick: usize,
+) -> bool {
+    selection_changed || action_requested || poll_tick.is_multiple_of(60)
+}
+
+fn should_refresh_runtime_fonts(
+    runtime_layout_rebuilt: bool,
+    row_views_created: bool,
+    settings_rows_created: bool,
+) -> bool {
+    runtime_layout_rebuilt || row_views_created || settings_rows_created
+}
+
+fn should_refresh_selected_preview(
+    was_open: bool,
+    selection_changed: bool,
+    _poll_tick: usize,
+) -> bool {
+    !was_open || selection_changed
+}
+
+fn should_render_settings(
+    selection_changed: bool,
+    render_requested: bool,
+    status_expired: bool,
+    file_cards_refreshed: bool,
+    poll_tick: usize,
+) -> bool {
+    selection_changed
+        || render_requested
+        || status_expired
+        || file_cards_refreshed
+        || poll_tick.is_multiple_of(60)
+}
+
+fn should_show_native_right_panel(mods_popup_open: bool, runtime_ready: bool) -> bool {
+    !mods_popup_open || !runtime_ready
+}
+
+fn refresh_file_card_cache(catalog: &mut ModSettingsCatalog) {
+    catalog.file_cards.clear();
+    let Some(entry) = catalog
+        .active_entry
+        .and_then(|index| catalog.entries.get(index))
+    else {
+        return;
+    };
+    for (index, control) in entry.manifest.controls.iter().enumerate() {
+        let ModSettingControl::FileCards {
+            directory,
+            filename_contains,
+            extension,
+            limit,
+            ..
+        } = control
+        else {
+            continue;
+        };
+        catalog.file_cards.insert(
+            index,
+            file_card_paths(directory, filename_contains, extension, *limit),
+        );
+    }
+}
+
 fn file_card_label(path: &Path) -> String {
     let name = path
         .file_stem()
@@ -2167,22 +2319,26 @@ fn dependency_warning_entries(
 
 fn refresh_dependency_cache(catalog: &mut ModSettingsCatalog) {
     let enabled = enabled_mod_ids();
-    catalog.dependency_warnings = dependency_warning_entries(catalog, &enabled);
-    catalog.enabled_mod_ids = enabled;
+    let warnings = dependency_warning_entries(catalog, &enabled);
+    if catalog.enabled_mod_ids != enabled || catalog.dependency_warnings != warnings {
+        catalog.enabled_mod_ids = enabled;
+        catalog.dependency_warnings = warnings;
+        catalog.render_requested = true;
+    }
 }
 
 // --- Settings panel rendering and actions ---------------------------------
 
-fn sync_mod_settings(root: &mut Node, assets: &mut Assets, catalog: &mut ModSettingsCatalog) {
+fn sync_mod_settings(
+    root: &mut Node,
+    assets: &mut Assets,
+    catalog: &mut ModSettingsCatalog,
+) -> SettingsSyncOutcome {
     let selected_name = selected_mod_name(root, assets)
         .filter(|name| name != NO_SELECTION)
         .unwrap_or_default();
-    let health = dependency_health(catalog, &selected_name);
-    catalog.dependency_tooltip = health.tooltip;
-    let _ = set_node_visible(root, "bmm_mod_dependency_warning", health.warning);
-    let dependency_summary = friendly_dependency_summary(catalog, &selected_name);
-    let _ = set_label_text(root, "bmm_mod_dependencies", &dependency_summary);
     let selection_changed = catalog.active_name != selected_name;
+    let mut status_expired = false;
     if selection_changed {
         catalog.active_name = selected_name.clone();
         catalog.active_entry = catalog
@@ -2213,6 +2369,7 @@ fn sync_mod_settings(root: &mut Node, assets: &mut Assets, catalog: &mut ModSett
             if catalog.status_frames == 0 {
                 catalog.status.clear();
                 catalog.status_row = None;
+                status_expired = true;
             }
         }
         if catalog.poll_tick.is_multiple_of(60) {
@@ -2224,6 +2381,38 @@ fn sync_mod_settings(root: &mut Node, assets: &mut Assets, catalog: &mut ModSett
             }
         }
     }
+
+    let file_card_action_requested = std::mem::take(&mut catalog.file_cards_refresh_requested);
+    let file_cards_refreshed = should_refresh_file_cards(
+        selection_changed,
+        file_card_action_requested,
+        catalog.poll_tick,
+    );
+    if file_cards_refreshed {
+        refresh_file_card_cache(catalog);
+    }
+
+    let render_requested = std::mem::take(&mut catalog.render_requested);
+    if !should_render_settings(
+        selection_changed,
+        render_requested,
+        status_expired,
+        file_cards_refreshed,
+        catalog.poll_tick,
+    ) {
+        return SettingsSyncOutcome {
+            rows_created: false,
+        };
+    }
+
+    let health = dependency_health(catalog, &selected_name);
+    catalog.dependency_tooltip = health.tooltip;
+    let _ = set_node_visible(root, "bmm_mod_dependency_warning", health.warning);
+    let dependency_summary = friendly_dependency_summary(catalog, &selected_name);
+    let _ = set_label_text(root, "bmm_mod_dependencies", &dependency_summary);
+    let mut outcome = SettingsSyncOutcome {
+        rows_created: false,
+    };
 
     if selection_changed {
         catalog.active_thumbnail =
@@ -2259,7 +2448,7 @@ fn sync_mod_settings(root: &mut Node, assets: &mut Assets, catalog: &mut ModSett
         let _ = set_node_visible(root, "bmm_mod_overview_icon", true);
         let _ = set_node_visible(root, "bmm_mod_overview_title", true);
         let _ = set_node_visible(root, "bmm_mod_description_scroll", true);
-        return;
+        return outcome;
     };
 
     let _ = set_node_visible(root, "bmm_mod_tab_overview", true);
@@ -2313,7 +2502,7 @@ fn sync_mod_settings(root: &mut Node, assets: &mut Assets, catalog: &mut ModSett
         if !summary.trim().is_empty() {
             let _ = set_label_text(root, "bmm_mod_description", summary);
         }
-        return;
+        return outcome;
     }
     let _ = set_label_text(root, "bmm_settings_title", "Settings");
     let _ = set_label_text(root, "bmm_settings_status", &catalog.status);
@@ -2340,7 +2529,7 @@ fn sync_mod_settings(root: &mut Node, assets: &mut Assets, catalog: &mut ModSett
     let needs_rows = find_node(root, "bmm_settings_rows").is_some_and(|rows| rows.child.is_empty());
     if needs_rows {
         let Some(rows) = find_node_mut(root, "bmm_settings_rows") else {
-            return;
+            return outcome;
         };
         let mut previous_category = String::new();
         for (index, control) in entry.manifest.controls.iter().enumerate() {
@@ -2351,13 +2540,14 @@ fn sync_mod_settings(root: &mut Node, assets: &mut Assets, catalog: &mut ModSett
                     SETTING_CATEGORY_ASSET,
                     "mod_setting_category_runtime",
                 ) else {
-                    return;
+                    return outcome;
                 };
                 let mut heading = template.load(assets);
                 heading.id = format!("bmm_setting_category_{index}");
                 let _ = set_label_text(&mut heading, "bmm_setting_category_label", category);
                 mark_tree_dirty(&mut heading);
                 rows.add_child(assets, heading);
+                outcome.rows_created = true;
                 previous_category.clear();
                 previous_category.push_str(category);
             }
@@ -2367,18 +2557,19 @@ fn sync_mod_settings(root: &mut Node, assets: &mut Assets, catalog: &mut ModSett
                 (SETTING_ROW_ASSET, "mod_setting_row_runtime")
             };
             let Some(template) = load_ui_template(assets, asset, needle) else {
-                return;
+                return outcome;
             };
             let mut row = template.load(assets);
             row.id = format!("bmm_setting_row_{index}");
             mark_tree_dirty(&mut row);
             rows.add_child(assets, row);
+            outcome.rows_created = true;
         }
     }
 
     let values = catalog.values.clone();
     let Some(rows) = find_node_mut(root, "bmm_settings_rows") else {
-        return;
+        return outcome;
     };
     for row in &mut rows.child {
         let Some(index) = setting_row_index(row) else {
@@ -2499,14 +2690,11 @@ fn sync_mod_settings(root: &mut Node, assets: &mut Assets, catalog: &mut ModSett
                     1.0,
                 );
             }
-            ModSettingControl::FileCards {
-                directory,
-                filename_contains,
-                extension,
-                limit,
-                ..
-            } => {
-                let files = file_card_paths(directory, filename_contains, extension, *limit);
+            ModSettingControl::FileCards { .. } => {
+                let files = catalog
+                    .file_cards
+                    .get(&index)
+                    .map_or(&[][..], Vec::as_slice);
                 for index in 0..5 {
                     let id = format!("bmm_setting_file_card_{index}");
                     let visible = index < files.len();
@@ -2527,7 +2715,7 @@ fn sync_mod_settings(root: &mut Node, assets: &mut Assets, catalog: &mut ModSett
             }
         }
     }
-    apply_runtime_fonts(root);
+    outcome
 }
 
 fn setting_control_at_point(root: &Node, x: f32, y: f32) -> Option<(usize, SettingAction)> {
@@ -2543,8 +2731,11 @@ fn setting_control_at_point(root: &Node, x: f32, y: f32) -> Option<(usize, Setti
             return None;
         }
         let index = setting_row_index(row)?;
-        if node_contains_point(row, "bmm_setting_toggle", x, y) {
-            return Some((index, SettingAction::Toggle));
+        if let Some(value) = requested_toggle_value(
+            node_contains_point(row, "bmm_setting_toggle_on", x, y),
+            node_contains_point(row, "bmm_setting_toggle_off", x, y),
+        ) {
+            return Some((index, SettingAction::SetToggle(value)));
         }
         if node_contains_point(row, "bmm_setting_choice_previous", x, y) {
             return Some((index, SettingAction::Previous));
@@ -2571,10 +2762,12 @@ fn apply_setting_action(
     match action {
         SettingAction::ShowOverview => {
             catalog.show_settings = false;
+            catalog.render_requested = true;
             return true;
         }
         SettingAction::ShowSettings => {
             catalog.show_settings = true;
+            catalog.render_requested = true;
             return true;
         }
         _ => {}
@@ -2590,15 +2783,17 @@ fn apply_setting_action(
         return false;
     };
     let status_next_to_toggle = matches!(&control, ModSettingControl::Toggle { .. });
+    let refresh_file_cards = matches!(
+        (&control, action),
+        (
+            ModSettingControl::FileCards { .. },
+            SettingAction::RunIndex(_)
+        )
+    );
 
     let result = match (control, action) {
-        (ModSettingControl::Toggle { key, default, .. }, SettingAction::Toggle) => {
-            let current = catalog
-                .values
-                .get(&key)
-                .and_then(JsonValue::as_bool)
-                .unwrap_or(default);
-            catalog.values.insert(key, JsonValue::Bool(!current));
+        (ModSettingControl::Toggle { key, .. }, SettingAction::SetToggle(value)) => {
+            catalog.values.insert(key, JsonValue::Bool(value));
             settings_file_path(&entry)
                 .ok_or_else(|| "invalid settings path".to_owned())
                 .and_then(|path| write_json_object(&path, &catalog.values))
@@ -2644,6 +2839,9 @@ fn apply_setting_action(
         _ => return false,
     };
     let failed = result.is_err();
+    if refresh_file_cards && !failed {
+        catalog.file_cards_refresh_requested = true;
+    }
     catalog.status = result.unwrap_or_else(|error| format!("Error: {error}"));
     catalog.status_row = if status_next_to_toggle && !failed {
         Some(row_index)
@@ -2651,6 +2849,7 @@ fn apply_setting_action(
         None
     };
     catalog.status_frames = SETTINGS_STATUS_FRAMES;
+    catalog.render_requested = true;
     true
 }
 
@@ -2847,12 +3046,42 @@ fn mod_row_name(row: &Node, assets: &Assets) -> Option<String> {
     label_text(find_node(row, "name")?, assets)
 }
 
-fn mod_row_search_text(row: &Node, assets: &Assets) -> String {
-    let name = mod_row_name(row, assets).unwrap_or_default();
-    let author = find_node(row, "author")
-        .and_then(|node| label_text(node, assets))
-        .unwrap_or_default();
-    format!("{name} {author}").to_lowercase()
+fn build_mod_row_cache(root: &Node, assets: &Assets) -> Vec<ModRowStaticData> {
+    mod_rows(root)
+        .map(|rows| {
+            rows.iter()
+                .map(|row| {
+                    let name = mod_row_name(row, assets).unwrap_or_default();
+                    let author = find_node(row, "author")
+                        .and_then(|node| label_text(node, assets))
+                        .unwrap_or_default();
+                    let is_code = find_node(row, "code_badge").is_some_and(|badge| badge.visible);
+                    let is_workshop =
+                        find_node(row, "workshop_badge").is_some_and(|badge| badge.visible);
+                    let source = if is_workshop { "Workshop" } else { "Local" }.to_owned();
+                    let search_text = format!("{name} {author}").to_lowercase();
+                    ModRowStaticData {
+                        name,
+                        author,
+                        source,
+                        search_text,
+                        is_code,
+                        is_workshop,
+                    }
+                })
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn row_matches_filter(row: &ModRowStaticData, query: &str, filter: ModSourceFilter) -> bool {
+    let matches_query = query.is_empty() || row.search_text.contains(query);
+    let matches_source = match filter {
+        ModSourceFilter::Code => row.is_code,
+        ModSourceFilter::Workshop => row.is_workshop,
+        ModSourceFilter::All => true,
+    };
+    matches_query && matches_source
 }
 
 fn mod_row_index_by_name(root: &Node, assets: &Assets, name: &str) -> Option<usize> {
@@ -2863,7 +3092,7 @@ fn mod_row_index_by_name(root: &Node, assets: &Assets, name: &str) -> Option<usi
 
 fn apply_mod_filter(
     root: &mut Node,
-    assets: &Assets,
+    cache: &[ModRowStaticData],
     query: &str,
     filter: ModSourceFilter,
 ) -> Vec<usize> {
@@ -2871,19 +3100,11 @@ fn apply_mod_filter(
     let visibility: Vec<bool> = mod_rows(root)
         .map(|rows| {
             rows.iter()
-                .map(|row| {
-                    let matches_query =
-                        query.is_empty() || mod_row_search_text(row, assets).contains(&query);
-                    let matches_source = match filter {
-                        ModSourceFilter::Code => {
-                            find_node(row, "code_badge").is_some_and(|badge| badge.visible)
-                        }
-                        ModSourceFilter::Workshop => {
-                            find_node(row, "workshop_badge").is_some_and(|badge| badge.visible)
-                        }
-                        _ => true,
-                    };
-                    matches_query && matches_source
+                .enumerate()
+                .map(|(index, _)| {
+                    cache
+                        .get(index)
+                        .is_some_and(|row| row_matches_filter(row, &query, filter))
                 })
                 .collect()
         })
@@ -3261,6 +3482,19 @@ fn load_ui_template(assets: &Assets, preferred: &str, needle: &str) -> Option<No
     None
 }
 
+fn color_style_requires_update(
+    current_border: [f32; 4],
+    current_background: Option<[f32; 4]>,
+    current_stroke: f32,
+    desired_border: [f32; 4],
+    desired_background: [f32; 4],
+    desired_stroke: f32,
+) -> bool {
+    current_border != desired_border
+        || current_stroke != desired_stroke
+        || current_background.is_some_and(|current| current != desired_background)
+}
+
 fn set_runtime_color_style(
     node: &mut Node,
     id: &str,
@@ -3276,12 +3510,34 @@ fn set_runtime_color_style(
     }
     let runner =
         unsafe { &mut *(target.runner.as_mut() as *mut dyn NodeRunner as *mut ColorRunner) };
+    let mut changed = false;
     for property in [
         &mut runner.style.normal,
         &mut runner.style.hover,
         &mut runner.style.active,
         &mut runner.style.disabled,
     ] {
+        let current_border = [
+            property.color.r,
+            property.color.g,
+            property.color.b,
+            property.color.a,
+        ];
+        let current_background = property
+            .back_color
+            .as_ref()
+            .map(|color| [color.r, color.g, color.b, color.a]);
+        if !color_style_requires_update(
+            current_border,
+            current_background,
+            property.stroke,
+            border,
+            background,
+            stroke,
+        ) {
+            continue;
+        }
+        changed = true;
         property.color.r = border[0];
         property.color.g = border[1];
         property.color.b = border[2];
@@ -3294,7 +3550,9 @@ fn set_runtime_color_style(
             back.a = background[3];
         }
     }
-    runner.set_dirty(true);
+    if changed {
+        runner.set_dirty(true);
+    }
 }
 
 #[allow(clippy::approx_constant)]
@@ -3483,20 +3741,38 @@ fn color_selectable_selected(node: &Node) -> Option<bool> {
     Some(runner.selected)
 }
 
-fn current_mod_states(root: &Node, assets: &Assets) -> Vec<(String, bool)> {
+fn current_mod_states(root: &Node, cache: &[ModRowStaticData]) -> Vec<(String, bool)> {
     mod_rows(root)
         .map(|rows| {
             rows.iter()
-                .filter_map(|row| {
-                    let name = mod_row_name(row, assets)?;
+                .zip(cache)
+                .map(|(row, data)| {
                     let enabled = find_node(row, "enabled")
                         .and_then(color_selectable_selected)
                         .unwrap_or(false);
-                    Some((name, enabled))
+                    (data.name.clone(), enabled)
                 })
                 .collect()
         })
         .unwrap_or_default()
+}
+
+fn has_pending_restart(
+    root: &Node,
+    cache: &[ModRowStaticData],
+    baseline_mod_states: &[(String, bool)],
+) -> bool {
+    mod_rows(root).is_some_and(|rows| {
+        rows.iter().zip(cache).any(|(row, data)| {
+            let enabled = find_node(row, "enabled")
+                .and_then(color_selectable_selected)
+                .unwrap_or(false);
+            baseline_mod_states
+                .iter()
+                .find(|(baseline_name, _)| baseline_name == &data.name)
+                .is_some_and(|(_, baseline_enabled)| *baseline_enabled != enabled)
+        })
+    })
 }
 
 // --- Mod row view model and animation -------------------------------------
@@ -3671,64 +3947,57 @@ fn style_mod_row(row: &mut Node, selected: bool, status: ModStatus, visual: Togg
 fn sync_mod_row_views(
     root: &mut Node,
     assets: &Assets,
-    selection_hint: &str,
-    prefer_selection_hint: bool,
-    baseline_mod_states: &[(String, bool)],
-    dependency_warnings: &[(String, String)],
+    context: ModRowSyncContext<'_>,
     transitions: &mut Vec<ToggleTransition>,
-) {
+) -> bool {
     let count = mod_row_count(root);
     let current_count = find_node(root, "bmm_mod_rows").map_or(0, |rows| rows.child.len());
+    let mut rows_created = false;
     if current_count < count {
         let Some(template) =
             load_ui_template(assets, MOD_ROW_TEMPLATE_ASSET, "bmm_mod_row_runtime")
         else {
-            return;
+            return false;
         };
         let Some(rows) = find_node_mut(root, "bmm_mod_rows") else {
-            return;
+            return false;
         };
         for index in current_count..count {
             let mut row = template.load(assets);
             row.id = format!("bmm_mod_row_{index}");
             mark_tree_dirty(&mut row);
             rows.add_child(assets, row);
+            rows_created = true;
         }
     }
 
-    let selected_name = if prefer_selection_hint && !selection_hint.is_empty() {
-        selection_hint.to_owned()
+    let selected_name = if context.prefer_selection_hint && !context.selection_hint.is_empty() {
+        context.selection_hint.to_owned()
     } else {
         selected_mod_name(root, assets)
             .filter(|name| name != NO_SELECTION)
-            .unwrap_or_else(|| selection_hint.to_owned())
+            .unwrap_or_else(|| context.selection_hint.to_owned())
     };
-    let row_views: Vec<ModRowViewData> = mod_rows(root)
+    let row_views: Vec<ModRowViewData<'_>> = mod_rows(root)
         .map(|rows| {
             rows.iter()
-                .map(|row| {
-                    let name = mod_row_name(row, assets).unwrap_or_default();
-                    let author = find_node(row, "author")
-                        .and_then(|node| label_text(node, assets))
-                        .unwrap_or_default();
-                    let source =
-                        if find_node(row, "workshop_badge").is_some_and(|badge| badge.visible) {
-                            "Workshop"
-                        } else {
-                            "Local"
-                        }
-                        .to_owned();
+                .zip(context.cache)
+                .map(|(row, data)| {
                     let enabled = find_node(row, "enabled")
                         .and_then(color_selectable_selected)
                         .unwrap_or(false);
-                    let status =
-                        row_status(&name, enabled, baseline_mod_states, dependency_warnings);
-                    let toggle = update_toggle_visual(transitions, &name, enabled);
-                    let selected = name == selected_name;
+                    let status = row_status(
+                        &data.name,
+                        enabled,
+                        context.baseline_mod_states,
+                        context.dependency_warnings,
+                    );
+                    let toggle = update_toggle_visual(transitions, &data.name, enabled);
+                    let selected = data.name == selected_name;
                     ModRowViewData {
-                        name,
-                        author,
-                        source,
+                        name: &data.name,
+                        author: &data.author,
+                        source: &data.source,
                         visible: row.visible,
                         selected,
                         status,
@@ -3740,16 +4009,16 @@ fn sync_mod_row_views(
         .unwrap_or_default();
 
     let Some(rows) = find_node_mut(root, "bmm_mod_rows") else {
-        return;
+        return rows_created;
     };
     for (row, view) in rows.child.iter_mut().zip(row_views) {
         row.visible = view.visible;
-        let _ = set_label_text(row, "bmm_mod_row_name", &truncate_chars(&view.name, 31));
-        let _ = set_label_text(row, "bmm_mod_row_author", &view.author);
-        let _ = set_label_text(row, "bmm_mod_row_source", &view.source);
+        let _ = set_label_text(row, "bmm_mod_row_name", &truncate_chars(view.name, 31));
+        let _ = set_label_text(row, "bmm_mod_row_author", view.author);
+        let _ = set_label_text(row, "bmm_mod_row_source", view.source);
         style_mod_row(row, view.selected, view.status, view.toggle);
     }
-    apply_runtime_fonts(root);
+    rows_created
 }
 
 fn search_state(root: &Node) -> Option<(String, bool)> {
@@ -4611,6 +4880,7 @@ fn init(_ctx: &GameCtx) -> ModRegistration {
         filter: AtomicUsize::new(ModSourceFilter::All as usize),
         query: Mutex::new(String::new()),
         selected_name: Mutex::new(String::new()),
+        row_cache: Mutex::new(Vec::new()),
         baseline_mod_states: Mutex::new(Vec::new()),
         toggle_transitions: Mutex::new(Vec::new()),
         bulk_toggle: Mutex::new(None),
@@ -4625,10 +4895,13 @@ declare_mod!(init);
 #[cfg(test)]
 mod tests {
     use super::{
-        canonical_github_url, canonical_youtube_url, compare_versions,
+        canonical_github_url, canonical_youtube_url, color_style_requires_update, compare_versions,
         friendly_version_requirement, is_safe_mod_id, json_string_array_len, parse_node_template,
-        resolve_mod_status, truncate_chars, validated_discord_contact, validated_profile_icon,
-        version_satisfies, ModStatus,
+        requested_toggle_value, resolve_mod_status, row_matches_filter, should_refresh_file_cards,
+        should_refresh_runtime_fonts, should_refresh_selected_preview, should_render_settings,
+        should_show_native_right_panel, truncate_chars, validated_discord_contact,
+        validated_profile_icon, version_satisfies, ModRowStaticData, ModSourceFilter, ModStatus,
+        GAME_VERSION,
     };
     use std::cmp::Ordering;
 
@@ -4644,9 +4917,11 @@ mod tests {
 
     #[test]
     fn evaluates_supported_version_ranges() {
-        assert!(version_satisfies("0.5.4", ">=0.5.2, <0.5.5"));
-        assert!(!version_satisfies("0.5.5", ">=0.5.2, <0.5.5"));
-        assert_eq!(compare_versions("v0.5.4", "0.5.4.0"), Ordering::Equal);
+        assert_eq!(GAME_VERSION, "0.5.7");
+        assert!(!version_satisfies("0.5.6", ">=0.5.7, <0.5.8"));
+        assert!(version_satisfies("0.5.7", ">=0.5.7, <0.5.8"));
+        assert!(!version_satisfies("0.5.8", ">=0.5.7, <0.5.8"));
+        assert_eq!(compare_versions("v0.5.7", "0.5.7.0"), Ordering::Equal);
     }
 
     #[test]
@@ -4658,8 +4933,8 @@ mod tests {
     #[test]
     fn formats_dependency_requirements_for_people() {
         assert_eq!(
-            friendly_version_requirement(">=0.5.2, <0.5.5"),
-            "≥ 0.5.2 and < 0.5.5"
+            friendly_version_requirement(">=0.5.7, <0.5.8"),
+            "≥ 0.5.7 and < 0.5.8"
         );
     }
 
@@ -4702,6 +4977,112 @@ mod tests {
             ModStatus::RestartRequired
         );
         assert_eq!(resolve_mod_status(false, false, false), ModStatus::None);
+    }
+
+    #[test]
+    fn unchanged_color_styles_do_not_require_dirtying() {
+        let border = [0.2, 0.3, 0.4, 1.0];
+        let background = [0.1, 0.1, 0.2, 1.0];
+        assert!(!color_style_requires_update(
+            border,
+            Some(background),
+            1.0,
+            border,
+            background,
+            1.0,
+        ));
+        assert!(color_style_requires_update(
+            border,
+            Some(background),
+            1.0,
+            [0.2, 0.3, 0.5, 1.0],
+            background,
+            1.0,
+        ));
+        assert!(color_style_requires_update(
+            border,
+            Some(background),
+            1.0,
+            border,
+            [0.1, 0.2, 0.2, 1.0],
+            1.0,
+        ));
+        assert!(color_style_requires_update(
+            border,
+            Some(background),
+            1.0,
+            border,
+            background,
+            2.0,
+        ));
+    }
+
+    #[test]
+    fn refreshes_file_cards_only_for_meaningful_triggers() {
+        assert!(should_refresh_file_cards(true, false, 1));
+        assert!(should_refresh_file_cards(false, true, 1));
+        assert!(should_refresh_file_cards(false, false, 60));
+        assert!(!should_refresh_file_cards(false, false, 59));
+    }
+
+    #[test]
+    fn cached_rows_filter_by_search_and_source() {
+        let row = ModRowStaticData {
+            name: "Intro Skip".to_owned(),
+            author: "MadManPetr1".to_owned(),
+            source: "Local".to_owned(),
+            search_text: "intro skip madmanpetr1".to_owned(),
+            is_code: true,
+            is_workshop: false,
+        };
+        assert!(row_matches_filter(&row, "intro", ModSourceFilter::All));
+        assert!(row_matches_filter(&row, "madman", ModSourceFilter::Code));
+        assert!(!row_matches_filter(
+            &row,
+            "intro",
+            ModSourceFilter::Workshop,
+        ));
+        assert!(!row_matches_filter(&row, "primary", ModSourceFilter::All));
+    }
+
+    #[test]
+    fn refreshes_runtime_fonts_only_after_runtime_nodes_change() {
+        assert!(!should_refresh_runtime_fonts(false, false, false));
+        assert!(should_refresh_runtime_fonts(true, false, false));
+        assert!(should_refresh_runtime_fonts(false, true, false));
+        assert!(should_refresh_runtime_fonts(false, false, true));
+    }
+
+    #[test]
+    fn refreshes_selected_preview_only_on_open_or_selection_change() {
+        assert!(!should_refresh_selected_preview(true, false, 29));
+        assert!(should_refresh_selected_preview(false, false, 29));
+        assert!(should_refresh_selected_preview(true, true, 29));
+        assert!(!should_refresh_selected_preview(true, false, 30));
+    }
+
+    #[test]
+    fn renders_settings_only_for_meaningful_state_changes() {
+        assert!(!should_render_settings(false, false, false, false, 59));
+        assert!(should_render_settings(true, false, false, false, 59));
+        assert!(should_render_settings(false, true, false, false, 59));
+        assert!(should_render_settings(false, false, true, false, 59));
+        assert!(should_render_settings(false, false, false, true, 59));
+        assert!(should_render_settings(false, false, false, false, 60));
+    }
+
+    #[test]
+    fn setting_toggle_halves_request_explicit_values() {
+        assert_eq!(requested_toggle_value(true, false), Some(true));
+        assert_eq!(requested_toggle_value(false, true), Some(false));
+        assert_eq!(requested_toggle_value(false, false), None);
+    }
+
+    #[test]
+    fn bmm_exclusively_owns_the_right_panel_while_ready() {
+        assert!(!should_show_native_right_panel(true, true));
+        assert!(should_show_native_right_panel(true, false));
+        assert!(should_show_native_right_panel(false, true));
     }
 
     #[test]
