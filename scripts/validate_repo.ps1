@@ -85,8 +85,8 @@ if ($cargo -notmatch '(?m)^name\s*=\s*"tfm2_better_mod_menu"') {
     throw "Cargo.toml package name must be tfm2_better_mod_menu."
 }
 $base = @($modInfo.dependencies | Where-Object { $_.mod_id -eq "base" })
-if ($base.Count -ne 1 -or $base[0].version -ne ">=0.5.7, <0.5.8") {
-    throw "Better Mod Menu must declare the tested 0.5.7 base range."
+if ($base.Count -ne 1 -or $base[0].version -ne ">=0.5.8, <0.5.9") {
+    throw "Better Mod Menu must declare the tested 0.5.8 base range."
 }
 if ($cargo -notmatch '(?m)^license\s*=\s*"GPL-3\.0-or-later"') {
     throw "Cargo.toml must declare GPL-3.0-or-later."
@@ -100,7 +100,7 @@ if ($workshop -notmatch [regex]::Escape("[b]Current version:[/b] v$($modInfo.ver
 if ($workshop -notmatch [regex]::Escape("[url=https://github.com/MadManPetr1/tfm2-better-mod-menu]Source code on GitHub[/url]")) {
     throw "Workshop description must link to the public source repository."
 }
-if ($workshop -notmatch '\[b\]Tested with:\[/b\] TFM2 0\.5\.7') {
+if ($workshop -notmatch '\[b\]Tested with:\[/b\] TFM2 0\.5\.8') {
     throw "Workshop Tested with line must match the supported base range."
 }
 if ($workshop -notmatch '(?m)^\[b\]Last tested:\[/b\] \d{2}/\d{2}/\d{4}$') {

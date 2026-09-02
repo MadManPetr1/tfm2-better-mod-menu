@@ -6,7 +6,7 @@
 
 A clearer, faster mod manager for **Teamfight Manager 2**.
 
-**Better Mod Menu 0.7.5 · TFM2 0.5.7 · Windows**
+**Better Mod Menu 0.7.6 · TFM2 0.5.8 · Windows**
 
 </div>
 
@@ -43,7 +43,7 @@ easier to search, understand, configure, and troubleshoot.
 
 ## Install
 
-1. Download `tfm2-better-mod-menu-v0.7.5.zip` from
+1. Download `tfm2-better-mod-menu-v0.7.6.zip` from
    [GitHub Releases](https://github.com/MadManPetr1/tfm2-better-mod-menu/releases).
    Do not use GitHub's automatic source-code archive.
 2. Extract the included `tfm2_better_mod_menu` folder into:
@@ -78,7 +78,7 @@ schemas cover the complete format.
 
 ## Safety and compatibility
 
-- Built against the `0.5.7` Mod SDK and tested on Teamfight Manager 2 `0.5.7`.
+- Built against the `0.5.8` Mod SDK and tested on Teamfight Manager 2 `0.5.8`.
 - Does not replace the game mod API or edit career saves.
 - Treats manifests and action files as untrusted input.
 - Restricts declared paths to the owning mod or its game-data directory.
@@ -87,12 +87,12 @@ schemas cover the complete format.
 
 ## Build and verify
 
-Install the Teamfight Manager 2 `0.5.7` Mod SDK, then run:
+Install the Teamfight Manager 2 `0.5.8` Mod SDK, then run:
 
 ```powershell
-.\build_local.ps1 -SdkDir "C:\path\to\Teamfight Manager2\mod-sdk-0.5.7"
+.\build_local.ps1 -SdkDir "C:\path\to\Teamfight Manager2\mod-sdk-0.5.8"
 .\scripts\validate_repo.ps1
-.\scripts\package_release.ps1 -SdkDir "C:\path\to\Teamfight Manager2\mod-sdk-0.5.7"
+.\scripts\package_release.ps1 -SdkDir "C:\path\to\Teamfight Manager2\mod-sdk-0.5.8"
 ```
 
 Contribution expectations are kept in [CONTRIBUTING.md](CONTRIBUTING.md).

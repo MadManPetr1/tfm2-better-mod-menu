@@ -4,6 +4,19 @@ All notable public changes to Better Mod Menu are documented here.
 
 ## [Unreleased]
 
+## [0.7.6] - 2026-09-02
+
+### Changed
+
+- Rebuilt the native DLL against the Teamfight Manager 2 `0.5.8` Mod SDK.
+- Updated the runtime version gate and declared base range to
+  `>=0.5.8, <0.5.9`.
+
+### Compatibility
+
+- Tested on Teamfight Manager 2 `0.5.8`; the existing menu, settings, restart,
+  thumbnail, dependency and author-profile behavior is unchanged.
+
 ## [0.7.5] - 2026-08-27
 
 ### Fixed
