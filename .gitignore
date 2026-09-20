@@ -1,4 +1,5 @@
 /target/
+/vendor/
 *.ui.bak
 /builds/
 /tfm2_better_mod_menu.dll

@@ -1,6 +1,6 @@
 [package]
 name = "tfm2_better_mod_menu"
-version = "0.7.6"
+version = "0.8.0"
 edition = "2021"
 authors = ["MadManPetr1"]
 description = "Focused usability improvements for the Teamfight Manager 2 mod manager"
@@ -13,5 +13,6 @@ keywords = ["teamfight-manager-2", "mod", "ui", "mod-manager"]
 crate-type = ["cdylib"]
 
 [dependencies]
+mod-api-stable = { path = "vendor/mod-api-stable" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
