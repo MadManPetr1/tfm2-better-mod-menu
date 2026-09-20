@@ -12,6 +12,7 @@ use std::sync::{
     Arc, Mutex,
 };
 
+mod catalog;
 mod dependencies;
 mod integration;
 mod io;
