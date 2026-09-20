@@ -13,6 +13,12 @@ foreach ($relativePath in @(
     "Cargo.toml",
     "Cargo.lock",
     "src/lib.rs",
+    "src/catalog.rs",
+    "src/dependencies.rs",
+    "src/integration.rs",
+    "src/io.rs",
+    "src/model.rs",
+    "src/settings.rs",
     "mod.mod_info",
     "mod.override_info",
     "better_mod_menu.schema.json",
@@ -57,6 +63,13 @@ foreach ($relativePath in @(
 )) {
     if (-not (Test-Path -LiteralPath (Join-Path $root $relativePath) -PathType Leaf)) {
         throw "Required file is missing: $relativePath"
+    }
+}
+
+$libSource = Get-Content -LiteralPath (Join-Path $root "src/lib.rs") -Raw
+foreach ($module in @("catalog", "dependencies", "integration", "io", "model", "settings")) {
+    if ($libSource -notmatch "(?m)^mod $module;") {
+        throw "src/lib.rs must declare the $module module."
     }
 }
 

@@ -2,21 +2,25 @@
 // See LICENSE-EXCEPTION.md for the TFM2 linking exception and attribution terms.
 
 use mod_api_stable::*;
-use serde::Deserialize;
 use serde_json::{json, Value};
 use std::collections::HashSet;
-use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::{
     atomic::{AtomicBool, AtomicU8, AtomicUsize, Ordering},
     Arc, Mutex,
 };
 
+use catalog::{build_catalog, runtime_roots};
+use io::{read_json_value, update_enabled_mods_file, write_json_object_atomic};
+use model::{ModRecord, ModSource, SelectedModView};
+
 mod catalog;
 mod dependencies;
 mod integration;
 mod io;
+#[allow(dead_code)]
 mod model;
+#[allow(dead_code)]
 mod settings;
 
 const MOD_ID: &str = "tfm2_better_mod_menu";
@@ -61,51 +65,8 @@ impl SourceFilter {
     }
 }
 
-#[derive(Clone, Debug, Deserialize)]
-struct ModInfo {
-    mod_id: String,
-    name: String,
-    #[serde(default)]
-    author: String,
-    #[serde(default)]
-    version: String,
-    #[serde(default)]
-    description: String,
-    #[serde(default)]
-    dependencies: Vec<Dependency>,
-}
-
-#[derive(Clone, Debug, Deserialize)]
-struct Dependency {
-    mod_id: String,
-    version: String,
-}
-
-#[derive(Clone, Debug)]
-struct ModEntry {
-    info: ModInfo,
-    root: PathBuf,
-    workshop: bool,
-    enabled: bool,
-}
-
-impl ModEntry {
-    fn search_text(&self) -> String {
-        format!("{} {}", self.info.name, self.info.author).to_lowercase()
-    }
-
-    fn matches(&self, query: &str, filter: SourceFilter) -> bool {
-        let source_matches = match filter {
-            SourceFilter::All => true,
-            SourceFilter::Local => !self.workshop,
-            SourceFilter::Workshop => self.workshop,
-        };
-        source_matches && self.search_text().contains(&query.to_lowercase())
-    }
-}
-
 struct SharedState {
-    mods: Mutex<Vec<ModEntry>>,
+    mods: Mutex<Vec<ModRecord>>,
     query: Mutex<String>,
     filter: AtomicU8,
     selected: AtomicUsize,
@@ -116,11 +77,14 @@ struct SharedState {
 }
 
 impl SharedState {
-    fn new(mods: Vec<ModEntry>) -> Self {
+    fn new(mods: Vec<ModRecord>) -> Self {
         let selected = mods
             .iter()
-            .position(|entry| entry.info.mod_id == "tfm2_intro_skip")
-            .or_else(|| mods.iter().position(|entry| entry.info.mod_id == MOD_ID))
+            .position(|entry| entry.identity.mod_id == "tfm2_intro_skip")
+            .or_else(|| {
+                mods.iter()
+                    .position(|entry| entry.identity.mod_id == MOD_ID)
+            })
             .unwrap_or(0);
         Self {
             mods: Mutex::new(mods),
@@ -397,7 +361,11 @@ impl BetterModMenu {
         let visible: Vec<usize> = mods
             .iter()
             .enumerate()
-            .filter_map(|(index, entry)| entry.matches(search, filter).then_some(index))
+            .filter_map(|(index, entry)| {
+                entry
+                    .matches(search, source_for_filter(filter))
+                    .then_some(index)
+            })
             .collect();
         let start = self
             .shared
@@ -426,14 +394,12 @@ impl BetterModMenu {
                 continue;
             };
             let entry = &mods[index];
+            let view = SelectedModView::from(entry);
             let root = row_path(slot, "");
             let _ = ctx.ui_set_visible(&root, true);
-            let _ = ctx.ui_set_text(&row_path(slot, "name"), &entry.info.name);
-            let _ = ctx.ui_set_text(&row_path(slot, "author"), &entry.info.author);
-            let _ = ctx.ui_set_text(
-                &row_path(slot, "source"),
-                if entry.workshop { "Workshop" } else { "Local" },
-            );
+            let _ = ctx.ui_set_text(&row_path(slot, "name"), &view.name);
+            let _ = ctx.ui_set_text(&row_path(slot, "author"), &view.author);
+            let _ = ctx.ui_set_text(&row_path(slot, "source"), source_label(view.source));
             let _ = ctx.ui_set_visible(&row_path(slot, "enabled_mark"), true);
             let _ = ctx.ui_set_visible(&row_path(slot, "disabled_mark"), true);
             let _ = ctx.ui_set_properties(
@@ -489,40 +455,29 @@ impl BetterModMenu {
         }
     }
 
-    fn render_details(&self, ctx: &mut StableClient<'_>, entry: &ModEntry) {
+    fn render_details(&self, ctx: &mut StableClient<'_>, entry: &ModRecord) {
         let base = format!("{ROOT}.bmm_menu_grid.bmm_details_panel");
+        let view = SelectedModView::from(entry);
         let _ = ctx.ui_set_text(
             &format!("{base}.bmm_mod_info_card.bmm_mod_name"),
-            &entry.info.name,
+            &view.name,
         );
         let _ = ctx.ui_set_text(
             &format!("{base}.bmm_mod_info_card.bmm_version"),
-            &format!("Version {}", entry.info.version),
+            &format!("Version {}", view.version),
         );
         let _ = ctx.ui_set_text(
             &format!("{base}.bmm_mod_info_card.bmm_mod_author"),
-            &entry.info.author,
+            &view.author,
         );
         let _ = ctx.ui_set_text(
             &format!("{base}.bmm_mod_info_card.bmm_mod_source"),
-            if entry.workshop { "Workshop" } else { "Local" },
+            source_label(view.source),
         );
-        let dependencies = if entry.info.dependencies.is_empty() {
+        let dependencies = if view.dependency_summary.is_empty() {
             "No declared dependencies".to_owned()
         } else {
-            entry
-                .info
-                .dependencies
-                .iter()
-                .map(|dependency| {
-                    if dependency.mod_id == "base" {
-                        format!("TFM2 version {}", dependency.version)
-                    } else {
-                        format!("{} {}", dependency.mod_id, dependency.version)
-                    }
-                })
-                .collect::<Vec<_>>()
-                .join(" | ")
+            view.dependency_summary.clone()
         };
         let _ = ctx.ui_set_text(
             &format!("{base}.bmm_mod_info_card.bmm_mod_dependencies"),
@@ -530,38 +485,27 @@ impl BetterModMenu {
         );
         let _ = ctx.ui_set_text(
             &format!("{base}.bmm_mod_content_card.bmm_mod_description_scroll.contents.bmm_mod_description"),
-            &entry.info.description,
+            &view.description,
         );
-        let _ = ctx.ui_set_properties(
-            &format!("{base}.bmm_mod_thumbnail_card.bmm_mod_thumbnail"),
-            &format!("source: \"asset/{}/thumbnail\";", entry.info.mod_id),
-        );
-        let has_thumbnail = entry.root.join("thumbnail.png").is_file()
-            || entry.root.join("thumbnail.jpg").is_file();
-        let _ = ctx.ui_set_visible(
-            &format!("{base}.bmm_mod_thumbnail_card.bmm_mod_thumbnail"),
-            has_thumbnail,
-        );
+        let thumbnail_path = format!("{base}.bmm_mod_thumbnail_card.bmm_mod_thumbnail");
+        if let Some(source) = view.assets.thumbnail.as_deref() {
+            let _ = ctx.ui_set_properties(&thumbnail_path, &format!("source: \"{source}\";"));
+        }
+        let has_thumbnail = view.assets.thumbnail.is_some();
+        let _ = ctx.ui_set_visible(&thumbnail_path, has_thumbnail);
         let _ = ctx.ui_set_visible(
             &format!("{base}.bmm_mod_thumbnail_card.bmm_mod_thumbnail_fallback"),
             !has_thumbnail,
         );
-        let _ = ctx.ui_set_properties(
-            &format!(
-                "{base}.bmm_mod_content_card.bmm_mod_description_scroll.contents.bmm_mod_banner"
-            ),
-            &format!("source: \"asset/{}/banner\";", entry.info.mod_id),
+        let banner_path = format!(
+            "{base}.bmm_mod_content_card.bmm_mod_description_scroll.contents.bmm_mod_banner"
         );
-        let has_banner =
-            entry.root.join("banner.png").is_file() || entry.root.join("banner.jpg").is_file();
-        let _ = ctx.ui_set_visible(
-            &format!(
-                "{base}.bmm_mod_content_card.bmm_mod_description_scroll.contents.bmm_mod_banner"
-            ),
-            has_banner,
-        );
-        let has_settings = entry.info.mod_id == "tfm2_intro_skip"
-            && entry.root.join("better_mod_menu.json").is_file();
+        if let Some(source) = view.assets.banner.as_deref() {
+            let _ = ctx.ui_set_properties(&banner_path, &format!("source: \"{source}\";"));
+        }
+        let _ = ctx.ui_set_visible(&banner_path, view.assets.banner.is_some());
+        let has_settings =
+            entry.identity.mod_id == "tfm2_intro_skip" && entry.integration.is_some();
         let settings_view = has_settings && self.shared.settings_view.load(Ordering::Acquire);
         let _ = ctx.ui_set_visible(
             &format!("{base}.bmm_mod_content_card.bmm_mod_tab_overview"),
@@ -683,10 +627,29 @@ fn row_path(slot: usize, child: &str) -> String {
     }
 }
 
-fn visible_indices_for(mods: &[ModEntry], query: &str, filter: SourceFilter) -> Vec<usize> {
+fn source_for_filter(filter: SourceFilter) -> Option<ModSource> {
+    match filter {
+        SourceFilter::All => None,
+        SourceFilter::Local => Some(ModSource::Local),
+        SourceFilter::Workshop => Some(ModSource::Workshop),
+    }
+}
+
+fn source_label(source: ModSource) -> &'static str {
+    match source {
+        ModSource::Local => "Local",
+        ModSource::Workshop => "Workshop",
+    }
+}
+
+fn visible_indices_for(mods: &[ModRecord], query: &str, filter: SourceFilter) -> Vec<usize> {
     mods.iter()
         .enumerate()
-        .filter_map(|(index, entry)| entry.matches(query, filter).then_some(index))
+        .filter_map(|(index, entry)| {
+            entry
+                .matches(query, source_for_filter(filter))
+                .then_some(index)
+        })
         .collect()
 }
 
@@ -723,15 +686,24 @@ fn set_visible_slot_enabled(shared: &SharedState, slot: usize, enabled: bool) {
 fn set_all_enabled(shared: &SharedState, enabled: bool) {
     let ids = if let Ok(mods) = shared.mods.lock() {
         mods.iter()
-            .map(|entry| entry.info.mod_id.clone())
+            .filter(|entry| {
+                entry.enabled != enabled && (enabled || entry.identity.mod_id != MOD_ID)
+            })
+            .map(|entry| entry.identity.mod_id.clone())
             .collect::<Vec<_>>()
     } else {
         return;
     };
-    if update_enabled_mods(&ids, enabled).is_ok() {
+    if ids.is_empty() {
+        return;
+    }
+    let preserve_id = (!enabled).then_some(MOD_ID);
+    if update_enabled_mods(&ids, enabled, preserve_id) == Ok(true) {
         if let Ok(mut mods) = shared.mods.lock() {
             for entry in &mut *mods {
-                entry.enabled = enabled;
+                if enabled || entry.identity.mod_id != MOD_ID {
+                    entry.enabled = enabled;
+                }
             }
         }
         shared.restart_required.store(true, Ordering::Release);
@@ -742,13 +714,13 @@ fn set_all_enabled(shared: &SharedState, enabled: bool) {
 fn set_entry_enabled(shared: &SharedState, index: usize, enabled: bool) {
     let id = if let Ok(mods) = shared.mods.lock() {
         match mods.get(index) {
-            Some(entry) if entry.enabled != enabled => entry.info.mod_id.clone(),
+            Some(entry) if entry.enabled != enabled => entry.identity.mod_id.clone(),
             _ => return,
         }
     } else {
         return;
     };
-    if update_enabled_mods(std::slice::from_ref(&id), enabled).is_ok() {
+    if update_enabled_mods(std::slice::from_ref(&id), enabled, None) == Ok(true) {
         if let Ok(mut mods) = shared.mods.lock() {
             if let Some(entry) = mods.get_mut(index) {
                 entry.enabled = enabled;
@@ -759,105 +731,25 @@ fn set_entry_enabled(shared: &SharedState, index: usize, enabled: bool) {
     }
 }
 
-fn update_enabled_mods(ids: &[String], enabled: bool) -> Result<(), String> {
-    let path = game_root().join("config/game/mods.json");
-    let source = fs::read_to_string(&path).map_err(|error| error.to_string())?;
-    let mut document: Value = serde_json::from_str(&source).map_err(|error| error.to_string())?;
-    set_enabled_in_document(&mut document, ids, enabled)?;
-    let temp = path.with_extension("json.bmm.tmp");
-    fs::write(
-        &temp,
-        serde_json::to_vec(&document).map_err(|error| error.to_string())?,
-    )
-    .map_err(|error| error.to_string())?;
-    fs::rename(&temp, &path).map_err(|error| error.to_string())
-}
-
-fn set_enabled_in_document(
-    document: &mut Value,
+fn update_enabled_mods(
     ids: &[String],
     enabled: bool,
-) -> Result<(), String> {
-    let array = document
-        .get_mut("enabled_mods")
-        .and_then(Value::as_array_mut)
-        .ok_or_else(|| "enabled_mods is missing".to_owned())?;
-    let targets: HashSet<&str> = ids.iter().map(String::as_str).collect();
-    array.retain(|value| value.as_str().is_none_or(|id| !targets.contains(id)));
-    if enabled {
-        array.extend(ids.iter().map(|id| json!(id)));
-    }
-    Ok(())
+    preserve_id: Option<&str>,
+) -> Result<bool, String> {
+    let path = game_root().join("config/game/mods.json");
+    update_enabled_mods_file(&path, ids, enabled, preserve_id)
 }
 
 fn game_root() -> PathBuf {
-    std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
-}
-
-fn scan_installed_mods() -> Vec<ModEntry> {
-    let root = game_root();
-    let enabled = enabled_mod_ids(&root);
-    let mut roots = vec![(root.join("mods"), false)];
-    if let Some(steamapps) = root.parent().and_then(Path::parent) {
-        roots.push((steamapps.join("workshop/content/3009300"), true));
-    }
-    let mut seen = HashSet::new();
-    let mut result = Vec::new();
-    for (scan_root, workshop) in roots {
-        for candidate in mod_info_candidates(&scan_root) {
-            let Ok(source) = fs::read_to_string(candidate.join("mod.mod_info")) else {
-                continue;
-            };
-            let Ok(info) = serde_json::from_str::<ModInfo>(&source) else {
-                continue;
-            };
-            if info.mod_id == "base" || !seen.insert(info.mod_id.clone()) {
-                continue;
-            }
-            result.push(ModEntry {
-                enabled: enabled.contains(&info.mod_id),
-                info,
-                root: candidate,
-                workshop,
-            });
-        }
-    }
-    result.sort_by(|left, right| {
-        left.info
-            .name
-            .to_lowercase()
-            .cmp(&right.info.name.to_lowercase())
-    });
-    result
-}
-
-fn mod_info_candidates(root: &Path) -> Vec<PathBuf> {
-    let Ok(entries) = fs::read_dir(root) else {
-        return Vec::new();
-    };
-    let mut result = Vec::new();
-    for entry in entries.flatten() {
-        let path = entry.path();
-        if path.join("mod.mod_info").is_file() {
-            result.push(path.clone());
-        }
-        if let Ok(children) = fs::read_dir(&path) {
-            for child in children.flatten() {
-                let child = child.path();
-                if child.join("mod.mod_info").is_file() {
-                    result.push(child);
-                }
-            }
-        }
-    }
-    result
+    std::env::current_exe()
+        .ok()
+        .and_then(|path| path.parent().map(Path::to_path_buf))
+        .or_else(|| std::env::current_dir().ok())
+        .unwrap_or_else(|| PathBuf::from("."))
 }
 
 fn enabled_mod_ids(root: &Path) -> HashSet<String> {
-    let Ok(source) = fs::read_to_string(root.join("config/game/mods.json")) else {
-        return HashSet::new();
-    };
-    let Ok(document) = serde_json::from_str::<Value>(&source) else {
+    let Ok(document) = read_json_value(&root.join("config/game/mods.json")) else {
         return HashSet::new();
     };
     document
@@ -880,8 +772,7 @@ fn intro_settings_path() -> Option<PathBuf> {
 
 fn read_intro_settings() -> Value {
     intro_settings_path()
-        .and_then(|path| fs::read_to_string(path).ok())
-        .and_then(|source| serde_json::from_str(&source).ok())
+        .and_then(|path| read_json_value(&path).ok())
         .unwrap_or_else(|| {
             json!({
                 "skip_disclaimer": true,
@@ -899,16 +790,7 @@ fn write_intro_setting(key: &str, value: Value) -> Result<(), String> {
         .as_object_mut()
         .ok_or_else(|| "Intro Skip settings must be a JSON object".to_owned())?;
     object.insert(key.to_owned(), value);
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).map_err(|error| error.to_string())?;
-    }
-    let temp = path.with_extension("json.bmm.tmp");
-    fs::write(
-        &temp,
-        serde_json::to_vec_pretty(&document).map_err(|error| error.to_string())?,
-    )
-    .map_err(|error| error.to_string())?;
-    fs::rename(temp, path).map_err(|error| error.to_string())
+    write_json_object_atomic(&path, object)
 }
 
 fn cycle_retention(direction: i32) -> Result<(), String> {
@@ -969,7 +851,31 @@ fn build_identity() -> String {
 
 fn init(host: &StableHost) -> StableMod {
     host.log(LogLevel::Info, &build_identity());
-    let shared = Arc::new(SharedState::new(scan_installed_mods()));
+    let root = game_root();
+    let enabled = enabled_mod_ids(&root);
+    let roots = runtime_roots(&root);
+    let game_version = host.game_version();
+    let game_version_text = format!(
+        "{}.{}.{}",
+        game_version.major, game_version.minor, game_version.patch
+    );
+    let build = build_catalog(&roots, &enabled, &game_version_text);
+    for issue in &build.issues {
+        let mod_context = issue
+            .mod_id
+            .as_deref()
+            .map(|mod_id| format!(" [{mod_id}]"))
+            .unwrap_or_default();
+        host.log(
+            LogLevel::Warn,
+            &format!(
+                "Better Mod Menu catalog issue{mod_context} ({}): {}",
+                issue.file.display(),
+                issue.message
+            ),
+        );
+    }
+    let shared = Arc::new(SharedState::new(build.catalog.records));
     let mut registration = StableMod::new(MOD_ID);
     registration.set_extension(BetterModMenu {
         shared,
@@ -1111,61 +1017,55 @@ fn request_clean_restart() -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        build_identity, set_enabled_in_document, visible_indices_for, ModEntry, ModInfo,
-        SourceFilter, BUILD_REVISION, MOD_VERSION,
-    };
+    use super::{build_identity, visible_indices_for, SourceFilter, BUILD_REVISION, MOD_VERSION};
+    use crate::io::set_enabled_in_document;
+    use crate::model::{DisplayMetadata, ModAssets, ModRecord, ModSource, SelectedModView};
     use serde_json::json;
-    use std::path::PathBuf;
-
-    fn entry(name: &str, author: &str, workshop: bool) -> ModEntry {
-        ModEntry {
-            info: ModInfo {
-                mod_id: name.to_lowercase(),
-                name: name.to_owned(),
-                author: author.to_owned(),
-                version: "1.0.0".to_owned(),
-                description: String::new(),
-                dependencies: Vec::new(),
-            },
-            root: PathBuf::new(),
-            workshop,
-            enabled: true,
-        }
-    }
 
     #[test]
-    fn filters_by_search_and_source() {
-        let local = entry("Intro Skip", "MadManPetr1", false);
-        assert!(local.matches("intro", SourceFilter::All));
-        assert!(local.matches("madman", SourceFilter::Local));
-        assert!(!local.matches("intro", SourceFilter::Workshop));
-    }
-
-    #[test]
-    fn visible_slot_mapping_uses_the_active_search_query() {
-        let mods = vec![
-            entry("Alpha", "Other", false),
-            entry("Intro Skip", "MadManPetr1", false),
-            entry("Workshop Match", "MadManPetr1", true),
+    fn active_search_and_source_filter_use_catalog_records() {
+        let records = vec![
+            ModRecord::test_record("local", "Intro Skip", "MadManPetr1"),
+            ModRecord::test_record("workshop", "Workshop Match", "Author")
+                .with_source(ModSource::Workshop),
         ];
-
         assert_eq!(
-            visible_indices_for(&mods, "intro", SourceFilter::All),
+            visible_indices_for(&records, "intro", SourceFilter::All),
+            vec![0]
+        );
+        assert_eq!(
+            visible_indices_for(&records, "match", SourceFilter::Workshop),
             vec![1]
         );
-        assert_eq!(
-            visible_indices_for(&mods, "madman", SourceFilter::Workshop),
-            vec![2]
-        );
+    }
+
+    #[test]
+    fn selected_details_use_manifest_overrides_and_friendly_dependencies() {
+        let mut record =
+            ModRecord::test_record("demo", "Baseline", "Author").with_display(DisplayMetadata {
+                title: Some("Integrated Title".to_owned()),
+                author: None,
+                version: None,
+                summary: None,
+            });
+        record.dependency_summary = "TFM2 version >= 0.6.0".to_owned();
+        record.assets = ModAssets {
+            thumbnail: Some("asset/demo/thumbnail".to_owned()),
+            banner: None,
+            profile_icon: None,
+        };
+        let view = SelectedModView::from(&record);
+        assert_eq!(view.name, "Integrated Title");
+        assert_eq!(view.dependency_summary, "TFM2 version >= 0.6.0");
+        assert!(view.assets.thumbnail.is_some());
     }
 
     #[test]
     fn updates_enabled_ids_without_touching_other_config() {
         let mut document = json!({"enabled_mods":["a","b"],"other":42});
-        set_enabled_in_document(&mut document, &["b".to_owned()], false).unwrap();
+        set_enabled_in_document(&mut document, &["b".to_owned()], false, None).unwrap();
         assert_eq!(document, json!({"enabled_mods":["a"],"other":42}));
-        set_enabled_in_document(&mut document, &["c".to_owned()], true).unwrap();
+        set_enabled_in_document(&mut document, &["c".to_owned()], true, None).unwrap();
         assert_eq!(document, json!({"enabled_mods":["a","c"],"other":42}));
     }
 

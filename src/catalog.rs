@@ -22,10 +22,12 @@ pub(crate) struct CatalogRoots {
 #[derive(Clone, Debug, Default)]
 pub(crate) struct ModCatalog {
     pub records: Vec<ModRecord>,
+    #[allow(dead_code)] // Phase 3 lookup API; the current renderer consumes ordered records only.
     by_id: HashMap<String, usize>,
 }
 
 impl ModCatalog {
+    #[allow(dead_code)] // Used by catalog consumers and tests before the Phase 4 renderer migration.
     pub(crate) fn get(&self, mod_id: &str) -> Option<&ModRecord> {
         self.by_id
             .get(mod_id)
