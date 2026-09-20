@@ -5,7 +5,7 @@ use crate::dependencies::{evaluate_dependencies, friendly_dependency_text, Insta
 use crate::integration::{discover_assets, load_optional_manifest, load_optional_profile};
 use crate::model::{
     CatalogIssue, DependencyHealth, DisplayMetadata, ModDependency, ModIdentity, ModRecord,
-    ModSource, SelectedModView,
+    ModSource, SelectedModView, StorageKind,
 };
 use serde::Deserialize;
 use std::collections::{HashMap, HashSet};
@@ -143,9 +143,16 @@ pub(crate) fn build_catalog(
                 continue;
             }
 
-            let (integration, manifest_issues) = load_optional_manifest(&candidate, &identity);
+            let (mut integration, manifest_issues) = load_optional_manifest(&candidate, &identity);
             for issue in manifest_issues {
                 push_issue_unique(&mut issues, issue);
+            }
+            if roots.game_data.as_os_str().is_empty()
+                && integration
+                    .as_ref()
+                    .is_some_and(|manifest| manifest.storage == StorageKind::GameData)
+            {
+                integration = None;
             }
             let (profile, profile_issues) = load_optional_profile(&candidate, &identity);
             for issue in profile_issues {
@@ -180,7 +187,7 @@ pub(crate) fn build_catalog(
             let view = SelectedModView::from(record);
             (
                 record.identity.mod_id.clone(),
-                InstalledDependency::new(&view.name, &view.version),
+                InstalledDependency::new(&view.name, &record.identity.version),
             )
         })
         .collect::<HashMap<_, _>>();
@@ -502,6 +509,50 @@ mod tests {
         let consumer = build.catalog.get("consumer").unwrap();
         assert!(!consumer.dependency_health.warning);
         assert_eq!(consumer.dependency_summary, "Requires Provider >= 1.0.0");
+    }
+
+    #[test]
+    fn dependency_health_uses_native_version_not_display_override() {
+        let fixture = catalog_fixture();
+        fixture.write_local_mod_with_dependencies(
+            "consumer",
+            "Consumer",
+            json!([{"mod_id":"provider","version":">=2.0.0"}]),
+        );
+        let provider = fixture.write_local_mod("provider", "Provider");
+        std::fs::write(
+            provider.join("better_mod_menu.json"),
+            r#"{"schema_version":1,"mod_id":"provider","name":"Provider","display":{"version":"9.0.0"},"controls":[{"type":"toggle","key":"enabled","label":"Enabled"}]}"#,
+        )
+        .unwrap();
+        let enabled = HashSet::from(["consumer".to_owned(), "provider".to_owned()]);
+
+        let build = build_catalog(&fixture.roots(), &enabled, "0.6.0");
+        let consumer = build.catalog.get("consumer").unwrap();
+
+        assert!(consumer.dependency_health.warning);
+        assert!(consumer.dependency_health.tooltip.contains("1.0.0"));
+    }
+
+    #[test]
+    fn missing_appdata_disables_only_game_data_integration() {
+        let fixture = catalog_fixture();
+        let root = fixture.write_local_mod("demo", "Demo");
+        std::fs::write(
+            root.join("better_mod_menu.json"),
+            r#"{"schema_version":1,"mod_id":"demo","name":"Demo","storage":"game_data","controls":[{"type":"toggle","key":"enabled","label":"Enabled"}]}"#,
+        )
+        .unwrap();
+        let mut roots = fixture.roots();
+        roots.game_data = PathBuf::new();
+
+        let build = build_catalog(&roots, &HashSet::new(), "0.6.0");
+
+        assert!(build.catalog.get("demo").is_some());
+        assert!(build.catalog.get("demo").unwrap().integration.is_none());
+        assert!(build.issues.iter().any(|issue| issue
+            .message
+            .contains("game-data integrations are disabled")));
     }
 
     #[test]
