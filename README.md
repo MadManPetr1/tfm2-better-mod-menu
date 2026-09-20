@@ -87,13 +87,22 @@ schemas cover the complete format.
 
 ## Build and verify
 
-Install the Teamfight Manager 2 `0.5.8` Mod SDK, then run:
+Development builds from `0.8.0` onward target the Stable API shipped with
+Teamfight Manager 2 `0.6.0+`. Pass the game's `mod-sdk-stable` directory to the
+build and foundation checks:
 
 ```powershell
-.\build_local.ps1 -SdkDir "C:\path\to\Teamfight Manager2\mod-sdk-0.5.8"
+.\build_local.ps1 -SdkDir "C:\path\to\Teamfight Manager2\mod-sdk-stable"
 .\scripts\validate_repo.ps1
-.\scripts\package_release.ps1 -SdkDir "C:\path\to\Teamfight Manager2\mod-sdk-0.5.8"
+.\scripts\test_foundation.ps1 -SdkDir "C:\path\to\Teamfight Manager2\mod-sdk-stable"
+.\scripts\install_local.ps1 -SdkDir "C:\path\to\Teamfight Manager2\mod-sdk-stable"
 ```
+
+The build writes `tfm2_better_mod_menu.build.json` beside the canonical DLL.
+The installer and verifier use it to prove the installed DLL came from the
+current source fingerprint and Stable ABI level. Public release packaging stays
+locked until the `0.8.0` feature-restoration and release-documentation phases
+are complete.
 
 Contribution expectations are kept in [CONTRIBUTING.md](CONTRIBUTING.md).
 

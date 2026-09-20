@@ -2,92 +2,138 @@
 # See LICENSE-EXCEPTION.md for the TFM2 linking exception and attribution terms.
 
 param(
-    [string]$SdkDir = $env:TFM2_MOD_SDK
+    [string]$SdkDir = $env:TFM2_MOD_SDK_STABLE
 )
 
 $ErrorActionPreference = "Stop"
 
 if ([string]::IsNullOrWhiteSpace($SdkDir)) {
-    throw "Pass -SdkDir <path-to-v0.5.8-mod-sdk> or set TFM2_MOD_SDK."
+    $SdkDir = $env:TFM2_MOD_SDK
+}
+if ([string]::IsNullOrWhiteSpace($SdkDir)) {
+    throw "Pass -SdkDir <path-to-mod-sdk-stable> or set TFM2_MOD_SDK_STABLE."
 }
 
+$root = (Resolve-Path -LiteralPath $PSScriptRoot).Path
 $sdk = (Resolve-Path -LiteralPath $SdkDir).Path
-$depsDir = Join-Path $sdk "deps"
-$nativeDir = Join-Path $sdk "native"
-$manifest = Join-Path $PSScriptRoot "Cargo.toml"
-$targetDir = Join-Path $PSScriptRoot "target"
-$baseVersion = (Get-Content -LiteralPath (Join-Path $sdk "base_version.txt") -Raw).Trim()
-if ($baseVersion -ne "0.5.8") {
-    throw "Better Mod Menu 0.7.6 must be built with the 0.5.8 Mod SDK; found $baseVersion."
-}
+$sdkBaseVersionFile = Join-Path $sdk "base_version.txt"
+$sdkCrate = Join-Path $sdk "mod-api-stable"
+$sdkCrateManifest = Join-Path $sdkCrate "Cargo.toml"
+$sdkContract = Join-Path $sdkCrate "contract\abi_v1.txt"
 
-$pinned = Select-String -LiteralPath (Join-Path $sdk "rust-toolchain.toml") `
-    -Pattern '^\s*channel\s*=\s*"([^"]+)"' |
-    ForEach-Object { $_.Matches[0].Groups[1].Value } |
-    Select-Object -First 1
-if (-not $pinned) {
-    throw "Could not read the SDK's pinned Rust toolchain."
-}
-$env:RUSTUP_TOOLCHAIN = $pinned
-
-# The SDK contains LLVM-bitcode archive members, so use rust-lld's COFF driver.
-$sysroot = (& rustup run $pinned rustc --print sysroot | Select-Object -First 1).Trim()
-if ([string]::IsNullOrWhiteSpace($sysroot) -or -not (Test-Path -LiteralPath $sysroot)) {
-    throw "Could not locate the SDK's pinned Rust sysroot."
-}
-$rustLld = Join-Path $sysroot "lib\rustlib\x86_64-pc-windows-msvc\bin\rust-lld.exe"
-if (-not (Test-Path -LiteralPath $rustLld -PathType Leaf)) {
-    throw "rust-lld.exe is missing from the SDK's pinned Rust toolchain."
-}
-$linkerDir = Join-Path ([System.IO.Path]::GetTempPath()) "tfm2-mod-sdk-linker\$pinned"
-$lldLink = Join-Path $linkerDir "lld-link.exe"
-New-Item -ItemType Directory -Path $linkerDir -Force | Out-Null
-if (-not (Test-Path -LiteralPath $lldLink -PathType Leaf)) {
-    try {
-        New-Item -ItemType HardLink -Path $lldLink -Target $rustLld -ErrorAction Stop | Out-Null
-    }
-    catch {
-        Copy-Item -LiteralPath $rustLld -Destination $lldLink
+foreach ($required in @($sdkBaseVersionFile, $sdkCrateManifest, $sdkContract)) {
+    if (-not (Test-Path -LiteralPath $required -PathType Leaf)) {
+        throw "The Stable Mod SDK is incomplete; missing $required"
     }
 }
-$env:CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER = $lldLink
 
-function Find-SdkRlib([string]$pattern) {
-    $matches = @(Get-ChildItem -LiteralPath $depsDir -Filter $pattern)
-    if ($matches.Count -ne 1) {
-        throw "Expected exactly one SDK dependency matching $pattern; found $($matches.Count)."
-    }
-    return $matches[0].FullName
+$baseVersionText = (Get-Content -LiteralPath $sdkBaseVersionFile -Raw).Trim()
+try {
+    $baseVersion = [version]$baseVersionText
+}
+catch {
+    throw "The Stable Mod SDK base_version.txt is invalid: $baseVersionText"
+}
+if ($baseVersion -lt [version]"0.6.0") {
+    throw "Better Mod Menu 0.8.0 requires the Stable Mod SDK from TFM2 0.6.0 or newer; found $baseVersionText."
 }
 
-$modApi = Find-SdkRlib "libmod_api-*.rlib"
-$engineUi = Find-SdkRlib "libengine_ui-*.rlib"
-$engineCore = Find-SdkRlib "libengine_core-*.rlib"
-$gameCore = Find-SdkRlib "libgame_core-*.rlib"
-$arrayvec = Find-SdkRlib "libarrayvec-*.rlib"
-$common = Find-SdkRlib "libcommon-*.rlib"
+$contractText = Get-Content -LiteralPath $sdkContract -Raw
+$abiMatch = [regex]::Match($contractText, '(?m)^abi_level\s*=\s*(\d+)\s*$')
+if (-not $abiMatch.Success) {
+    throw "Could not read abi_level from $sdkContract"
+}
+$abiLevel = [int]$abiMatch.Groups[1].Value
 
-$flags = @(
-    "-L", "dependency=$depsDir",
-    "--extern", "mod_api=$modApi",
-    "--extern", "engine_ui=$engineUi",
-    "--extern", "engine_core=$engineCore",
-    "--extern", "game_core=$gameCore",
-    "--extern", "arrayvec=$arrayvec",
-    "--extern", "common=$common",
-    "-L", "native=$nativeDir"
+$vendorParent = Join-Path $root "vendor"
+$vendorTarget = Join-Path $vendorParent "mod-api-stable"
+$expectedVendorTarget = [System.IO.Path]::GetFullPath($vendorTarget)
+New-Item -ItemType Directory -Path $vendorParent -Force | Out-Null
+if (Test-Path -LiteralPath $vendorTarget) {
+    $resolvedVendorTarget = (Resolve-Path -LiteralPath $vendorTarget).Path
+    if (-not $resolvedVendorTarget.Equals($expectedVendorTarget, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Refusing to replace an unexpected vendor path: $resolvedVendorTarget"
+    }
+    Remove-Item -LiteralPath $resolvedVendorTarget -Recurse -Force
+}
+Copy-Item -LiteralPath $sdkCrate -Destination $vendorTarget -Recurse
+
+$manifestPath = Join-Path $root "Cargo.toml"
+$cargoText = Get-Content -LiteralPath $manifestPath -Raw
+$versionMatch = [regex]::Match($cargoText, '(?m)^version\s*=\s*"([^"]+)"')
+if (-not $versionMatch.Success) {
+    throw "Could not read the package version from Cargo.toml."
+}
+$modVersion = $versionMatch.Groups[1].Value
+
+$sourceCommit = (& git -C $root rev-parse --short=12 HEAD | Select-Object -First 1).Trim()
+if ([string]::IsNullOrWhiteSpace($sourceCommit)) {
+    throw "Could not determine the source revision."
+}
+$dirtyOutput = @(& git -C $root status --porcelain=v1 --untracked-files=all)
+$sourceDirty = $dirtyOutput.Count -gt 0
+$sourceDiff = @(& git -C $root diff --binary --no-ext-diff HEAD -- .) -join "`n"
+$untrackedSignatures = @(
+    & git -C $root ls-files --others --exclude-standard |
+        Sort-Object |
+        ForEach-Object {
+            $untrackedPath = $_
+            $untrackedHash = (Get-FileHash -LiteralPath (Join-Path $root $untrackedPath) -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$untrackedPath`:$untrackedHash"
+        }
 )
-$env:CARGO_ENCODED_RUSTFLAGS = $flags -join [char]31
+$sourceMaterial = $sourceDiff + "`n--untracked--`n" + ($untrackedSignatures -join "`n")
+$sourceDiffBytes = [System.Text.UTF8Encoding]::new($false).GetBytes($sourceMaterial)
+$sourceDiffHash = [System.BitConverter]::ToString(
+    [System.Security.Cryptography.SHA256]::HashData($sourceDiffBytes)
+).Replace("-", "").ToLowerInvariant()
+$sourceFingerprint = if ($sourceDirty) { "$sourceCommit`:$sourceDiffHash" } else { $sourceCommit }
+$buildRevision = if ($sourceDirty) {
+    "$sourceCommit+dirty.$($sourceDiffHash.Substring(0, 12))"
+}
+else {
+    $sourceCommit
+}
+$buildTimestamp = [DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
 
-cargo rustc --release --manifest-path $manifest --target-dir $targetDir --lib -- --crate-type cdylib
+$env:TFM2_BMM_BUILD_REVISION = $buildRevision
+$env:TFM2_BMM_BUILD_TIMESTAMP = $buildTimestamp
+
+cargo build --release --locked --manifest-path $manifestPath
 if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
-$generatedDll = Join-Path $targetDir "release\tfm2_better_mod_menu.dll"
-$outputDll = Join-Path $PSScriptRoot "tfm2_better_mod_menu.dll"
+$generatedDll = Join-Path $root "target\release\tfm2_better_mod_menu.dll"
+$outputDll = Join-Path $root "tfm2_better_mod_menu.dll"
+$outputManifest = Join-Path $root "tfm2_better_mod_menu.build.json"
 if (-not (Test-Path -LiteralPath $generatedDll -PathType Leaf)) {
     throw "Cargo build succeeded, but the generated DLL is missing: $generatedDll"
 }
 Copy-Item -LiteralPath $generatedDll -Destination $outputDll -Force
-Write-Host "Local DLL ready: $outputDll"
+$dllHash = (Get-FileHash -LiteralPath $outputDll -Algorithm SHA256).Hash.ToLowerInvariant()
+
+$buildInfo = [ordered]@{
+    schema_version = 1
+    mod_id = "tfm2_better_mod_menu"
+    version = $modVersion
+    minimum_game_version = "0.6.0"
+    sdk_base_version = $baseVersionText
+    sdk_abi_level = $abiLevel
+    source_commit = $sourceCommit
+    source_dirty = $sourceDirty
+    source_fingerprint = $sourceFingerprint
+    source_revision = $buildRevision
+    built_at_utc = $buildTimestamp
+    dll_file = "tfm2_better_mod_menu.dll"
+    dll_sha256 = $dllHash
+}
+$buildInfoJson = $buildInfo | ConvertTo-Json -Depth 4
+[System.IO.File]::WriteAllText(
+    $outputManifest,
+    $buildInfoJson + [Environment]::NewLine,
+    [System.Text.UTF8Encoding]::new($false)
+)
+
+Write-Host "Stable API DLL ready: $outputDll"
+Write-Host "Build identity: $buildRevision | SDK $baseVersionText | ABI $abiLevel | SHA256 $dllHash"

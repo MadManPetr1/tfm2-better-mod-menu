@@ -3,6 +3,7 @@
 *.ui.bak
 /builds/
 /tfm2_better_mod_menu.dll
+/tfm2_better_mod_menu.build.json
 /mod.workshop_id
 *.dll.lib
 *.pdb

@@ -13,6 +13,15 @@ use std::sync::{
 };
 
 const MOD_ID: &str = "tfm2_better_mod_menu";
+const MOD_VERSION: &str = env!("CARGO_PKG_VERSION");
+const BUILD_REVISION: &str = match option_env!("TFM2_BMM_BUILD_REVISION") {
+    Some(revision) => revision,
+    None => "development",
+};
+const BUILD_TIMESTAMP: &str = match option_env!("TFM2_BMM_BUILD_TIMESTAMP") {
+    Some(timestamp) => timestamp,
+    None => "unknown",
+};
 const RUNTIME_LAYOUT_ASSET: &str = "asset/tfm2_better_mod_menu/ui/layout/better_mod_menu_runtime";
 const ROOT: &str = "body.mods_popup.bmm_surface";
 const NATIVE_LEFT: &str = "body.mods_popup.left_panel";
@@ -944,11 +953,15 @@ fn render_intro_settings(ctx: &mut StableClient<'_>) {
     );
 }
 
+fn build_identity() -> String {
+    format!(
+        "Better Mod Menu {MOD_VERSION} initialized (Stable ABI {}, source {BUILD_REVISION}, built {BUILD_TIMESTAMP})",
+        ABI_LEVEL
+    )
+}
+
 fn init(host: &StableHost) -> StableMod {
-    host.log(
-        LogLevel::Info,
-        "Better Mod Menu 0.8.0 stable module initialized",
-    );
+    host.log(LogLevel::Info, &build_identity());
     let shared = Arc::new(SharedState::new(scan_installed_mods()));
     let mut registration = StableMod::new(MOD_ID);
     registration.set_extension(BetterModMenu {
@@ -1091,7 +1104,10 @@ fn request_clean_restart() -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{set_enabled_in_document, visible_indices_for, ModEntry, ModInfo, SourceFilter};
+    use super::{
+        build_identity, set_enabled_in_document, visible_indices_for, ModEntry, ModInfo,
+        SourceFilter, BUILD_REVISION, MOD_VERSION,
+    };
     use serde_json::json;
     use std::path::PathBuf;
 
@@ -1144,5 +1160,13 @@ mod tests {
         assert_eq!(document, json!({"enabled_mods":["a"],"other":42}));
         set_enabled_in_document(&mut document, &["c".to_owned()], true).unwrap();
         assert_eq!(document, json!({"enabled_mods":["a","c"],"other":42}));
+    }
+
+    #[test]
+    fn build_identity_reports_version_abi_and_revision() {
+        let identity = build_identity();
+        assert!(identity.contains(MOD_VERSION));
+        assert!(identity.contains("Stable ABI"));
+        assert!(identity.contains(BUILD_REVISION));
     }
 }

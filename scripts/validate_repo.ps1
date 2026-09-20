@@ -1,7 +1,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # See LICENSE-EXCEPTION.md for the TFM2 linking exception and attribution terms.
 
-param()
+param(
+    [switch]$ReleaseMetadata
+)
 
 $ErrorActionPreference = "Stop"
 $root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
@@ -34,7 +36,11 @@ foreach ($relativePath in @(
     "NOTICE.md",
     "MODDER_GUIDE.md",
     "THIRD_PARTY_NOTICES.md",
+    "build_local.ps1",
+    "scripts/install_local.ps1",
     "scripts/package_release.ps1",
+    "scripts/test_foundation.ps1",
+    "scripts/verify_install.ps1",
     "ui/layout/better_mod_menu_runtime.ui",
     "ui/layout/mods_component/mod_file_cards_row_runtime.ui",
     "ui/layout/mods_component/mod_setting_category_runtime.ui",
@@ -85,38 +91,43 @@ if ($cargo -notmatch '(?m)^name\s*=\s*"tfm2_better_mod_menu"') {
     throw "Cargo.toml package name must be tfm2_better_mod_menu."
 }
 $base = @($modInfo.dependencies | Where-Object { $_.mod_id -eq "base" })
-if ($base.Count -ne 1 -or $base[0].version -ne ">=0.5.8, <0.5.9") {
-    throw "Better Mod Menu must declare the tested 0.5.8 base range."
+if ($base.Count -ne 1 -or $base[0].version -ne ">=0.6.0") {
+    throw "Better Mod Menu must target the Stable API baseline with base >=0.6.0."
+}
+if ($cargo -notmatch '(?m)^mod-api-stable\s*=\s*\{\s*path\s*=\s*"vendor/mod-api-stable"\s*\}') {
+    throw "Cargo.toml must use the Stable API crate synchronized from the installed SDK."
 }
 if ($cargo -notmatch '(?m)^license\s*=\s*"GPL-3\.0-or-later"') {
     throw "Cargo.toml must declare GPL-3.0-or-later."
 }
-if ($workshop -notmatch [regex]::Escape("[code]tfm2_better_mod_menu.dll[/code]")) {
-    throw "Workshop description must name tfm2_better_mod_menu.dll."
-}
-if ($workshop -notmatch [regex]::Escape("[b]Current version:[/b] v$($modInfo.version)")) {
-    throw "Workshop description version does not match mod.mod_info."
-}
-if ($workshop -notmatch [regex]::Escape("[url=https://github.com/MadManPetr1/tfm2-better-mod-menu]Source code on GitHub[/url]")) {
-    throw "Workshop description must link to the public source repository."
-}
-if ($workshop -notmatch '\[b\]Tested with:\[/b\] TFM2 0\.5\.8') {
-    throw "Workshop Tested with line must match the supported base range."
-}
-if ($workshop -notmatch '(?m)^\[b\]Last tested:\[/b\] \d{2}/\d{2}/\d{4}$') {
-    throw "Workshop Last tested must use DD/MM/YYYY."
-}
-$featuresStart = $workshop.IndexOf("[h2]Features[/h2]", [StringComparison]::Ordinal)
-$featuresEnd = $workshop.IndexOf("[h2]Compatibility[/h2]", [StringComparison]::Ordinal)
-if ($featuresStart -lt 0 -or $featuresEnd -le $featuresStart) {
-    throw "Workshop Features and Compatibility sections are missing or out of order."
-}
-$featureCount = [regex]::Matches(
-    $workshop.Substring($featuresStart, $featuresEnd - $featuresStart),
-    '(?m)^\[\*\]'
-).Count
-if ($featureCount -lt 1 -or $featureCount -gt 6) {
-    throw "Workshop Features must contain between one and six entries."
+if ($ReleaseMetadata) {
+    if ($workshop -notmatch [regex]::Escape("[code]tfm2_better_mod_menu.dll[/code]")) {
+        throw "Workshop description must name tfm2_better_mod_menu.dll."
+    }
+    if ($workshop -notmatch [regex]::Escape("[b]Current version:[/b] v$($modInfo.version)")) {
+        throw "Workshop description version does not match mod.mod_info."
+    }
+    if ($workshop -notmatch [regex]::Escape("[url=https://github.com/MadManPetr1/tfm2-better-mod-menu]Source code on GitHub[/url]")) {
+        throw "Workshop description must link to the public source repository."
+    }
+    if ($workshop -notmatch '\[b\]Tested with:\[/b\] TFM2 0\.6\.0') {
+        throw "Workshop Tested with line must name the Stable API baseline, TFM2 0.6.0."
+    }
+    if ($workshop -notmatch '(?m)^\[b\]Last tested:\[/b\] \d{2}/\d{2}/\d{4}$') {
+        throw "Workshop Last tested must use DD/MM/YYYY."
+    }
+    $featuresStart = $workshop.IndexOf("[h2]Features[/h2]", [StringComparison]::Ordinal)
+    $featuresEnd = $workshop.IndexOf("[h2]Compatibility[/h2]", [StringComparison]::Ordinal)
+    if ($featuresStart -lt 0 -or $featuresEnd -le $featuresStart) {
+        throw "Workshop Features and Compatibility sections are missing or out of order."
+    }
+    $featureCount = [regex]::Matches(
+        $workshop.Substring($featuresStart, $featuresEnd - $featuresStart),
+        '(?m)^\[\*\]'
+    ).Count
+    if ($featureCount -lt 1 -or $featureCount -gt 6) {
+        throw "Workshop Features must contain between one and six entries."
+    }
 }
 
 Get-Content -LiteralPath (Join-Path $root "better_mod_menu.schema.json") -Raw |
@@ -175,4 +186,5 @@ finally {
     Pop-Location
 }
 
-Write-Host "Repository validation passed for Better Mod Menu v$($modInfo.version)."
+$validationKind = if ($ReleaseMetadata) { "release" } else { "foundation" }
+Write-Host "Repository $validationKind validation passed for Better Mod Menu v$($modInfo.version)."

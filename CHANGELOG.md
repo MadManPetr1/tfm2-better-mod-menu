@@ -4,6 +4,21 @@ All notable public changes to Better Mod Menu are documented here.
 
 ## [Unreleased]
 
+### Changed
+
+- Preserved the last `0.7.6` implementation separately from the in-progress
+  `0.8.0` Stable API migration.
+- Replaced the retired private-SDK build path with the Stable API SDK shipped by
+  Teamfight Manager 2 `0.6.0+`.
+- Added reproducible build manifests, staged installation, and source/DLL hash
+  verification so local runtime artifacts can be traced to an exact revision.
+
+### Compatibility
+
+- The active development line now targets TFM2 `0.6.0+` and Stable ABI modules
+  only. Restoring full `0.7.6` menu feature parity is tracked separately from
+  this build-foundation work.
+
 ## [0.7.6] - 2026-09-02
 
 ### Changed
