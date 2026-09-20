@@ -12,6 +12,8 @@ use std::sync::{
     Arc, Mutex,
 };
 
+mod model;
+
 const MOD_ID: &str = "tfm2_better_mod_menu";
 const MOD_VERSION: &str = env!("CARGO_PKG_VERSION");
 const BUILD_REVISION: &str = match option_env!("TFM2_BMM_BUILD_REVISION") {
