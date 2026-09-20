@@ -16,6 +16,7 @@ mod dependencies;
 mod integration;
 mod io;
 mod model;
+mod settings;
 
 const MOD_ID: &str = "tfm2_better_mod_menu";
 const MOD_VERSION: &str = env!("CARGO_PKG_VERSION");
