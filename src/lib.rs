@@ -14,6 +14,7 @@ use std::sync::{
 
 mod dependencies;
 mod integration;
+mod io;
 mod model;
 
 const MOD_ID: &str = "tfm2_better_mod_menu";
