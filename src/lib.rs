@@ -12,6 +12,7 @@ use std::sync::{
     Arc, Mutex,
 };
 
+mod integration;
 mod model;
 
 const MOD_ID: &str = "tfm2_better_mod_menu";
