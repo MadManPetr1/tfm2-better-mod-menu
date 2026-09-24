@@ -1,3 +1,16 @@
+> [!IMPORTANT]
+> ## Archived / Maintenance Paused
+>
+> This mod is currently unmaintained. The default branch preserves **Better
+> Mod Menu 0.7.6**, the last known working release for **TFM2 0.5.8** and its
+> legacy Mod SDK. It is not supported or verified on TFM2 0.6.0.
+>
+> Experimental and incomplete TFM2 0.6.0 Stable API work is preserved on
+> [`recovery/tfm2-0.6.0-compat`](https://github.com/MadManPetr1/tfm2-better-mod-menu/tree/recovery/tfm2-0.6.0-compat).
+> There is no planned maintenance schedule, though development may resume in
+> the future. Resume by reviewing that recovery branch against the then-current
+> SDK and validating it in game before publishing anything.
+
 <div align="center">
 
 <img src="thumbnail.png" alt="Better Mod Menu icon" width="128">

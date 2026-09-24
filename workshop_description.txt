@@ -1,3 +1,11 @@
+[h1][ARCHIVED / MAINTENANCE PAUSED][/h1]
+
+This mod is currently unmaintained.
+
+The archived release is the last known working version for TFM2 0.5.8 and the legacy 0.5.8 Mod SDK. It is not supported or verified on TFM2 0.6.0.
+
+Unfinished TFM2 0.6.0 Stable API work is preserved in the source repository under recovery/tfm2-0.6.0-compat in case development resumes later. There is currently no planned update schedule.
+
 [h1]Better Mod Menu[/h1]
 
 [b]A clearer, faster mod manager for Teamfight Manager 2.[/b]
